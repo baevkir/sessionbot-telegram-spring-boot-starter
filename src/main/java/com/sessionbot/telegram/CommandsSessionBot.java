@@ -14,6 +14,7 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -121,7 +122,9 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
     private void executeHelp(Update update) {
         CommandRequest commandRequest = CommandRequest.builder()
                 .withCommandMessage(update.getMessage())
-                .withUpdate(update).build();
+                .withUpdate(update)
+                .withArguments(Collections.emptyList())
+                .build();
         commandsFactory.getHelpCommand().process(commandRequest).subscribe(this::executeMessage);
     }
 
