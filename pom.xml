@@ -28,7 +28,16 @@
         <commons-collections4.version>4.1</commons-collections4.version>
         <commons-lang3.version>3.10</commons-lang3.version>
         <jackson.version>2.11.0.rc1</jackson.version>
+        <github.maven-plugin>0.12</github.maven-plugin>
     </properties>
+
+    <distributionManagement>
+        <repository>
+            <id>internal.repo</id>
+            <name>Temporary Staging Repository</name>
+            <url>file://${project.build.directory}/mvn-repo</url>
+        </repository>
+    </distributionManagement>
 
     <dependencyManagement>
         <dependencies>
