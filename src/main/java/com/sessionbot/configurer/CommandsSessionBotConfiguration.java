@@ -13,9 +13,9 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.telegram.telegrambots.ApiContextInitializer;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,13 +25,9 @@ import java.util.stream.Collectors;
 @EnableConfigurationProperties(CommandsSessionBotProperties.class)
 public class CommandsSessionBotConfiguration {
 
-    static {
-        ApiContextInitializer.init();
-    }
-
     @Bean
-    public TelegramBotsApi telegramBotsApi(CommandsSessionBot bot) throws TelegramApiRequestException {
-        TelegramBotsApi telegramBotsApi = new TelegramBotsApi();
+    public TelegramBotsApi telegramBotsApi(CommandsSessionBot bot) throws TelegramApiException {
+        TelegramBotsApi telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);
         telegramBotsApi.registerBot(bot);
         return telegramBotsApi;
     }

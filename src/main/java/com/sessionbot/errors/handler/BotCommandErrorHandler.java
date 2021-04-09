@@ -27,9 +27,11 @@ public class BotCommandErrorHandler implements ErrorHandler<BotCommandException>
         return Mono.fromSupplier(() -> {
             commandsSessionCash.closeSession(exception.getCommandRequest().getCommandMessage());
 
-            return new SendMessage()
-                    .setChatId(chatId)
-                    .setText(botMessage);
+            return SendMessage
+                    .builder()
+                    .chatId(Long.toString(chatId))
+                    .text(botMessage)
+                    .build();
         });
     }
 }

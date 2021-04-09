@@ -25,13 +25,13 @@ public class CommandsSessionCash {
         return cashValue;
     }
 
-    public SessionValue getSession(Integer userId, Long chatId) {
+    public SessionValue getSession(Long userId, Long chatId) {
         Objects.requireNonNull(userId, "userId is null");
         Objects.requireNonNull(chatId, "chatId is null");
         return cash.get(new SessionKey(userId, chatId));
     }
 
-    public SessionValue updateSessionArguments(Integer userId, Long chatId, List<Object> arguments) {
+    public SessionValue updateSessionArguments(Long userId, Long chatId, List<Object> arguments) {
         Objects.requireNonNull(userId, "userId is null");
         Objects.requireNonNull(chatId, "chatId is null");
         Objects.requireNonNull(arguments, "arguments is null");
@@ -50,7 +50,7 @@ public class CommandsSessionCash {
     }
 
     private static class SessionKey {
-        private final Integer userId;
+        private final Long userId;
         private final Long chatId;
 
         public SessionKey(Message message) {
@@ -58,7 +58,7 @@ public class CommandsSessionCash {
             this.chatId = message.getChatId();
         }
 
-        public SessionKey(Integer userId, Long chatId) {
+        public SessionKey(Long userId, Long chatId) {
             this.userId = userId;
             this.chatId = chatId;
         }

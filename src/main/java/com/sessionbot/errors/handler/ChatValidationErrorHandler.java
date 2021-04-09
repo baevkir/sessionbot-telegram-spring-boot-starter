@@ -21,7 +21,7 @@ public class ChatValidationErrorHandler implements ErrorHandler<ChatValidationEx
         Long chatId = exception.getErrorData().getCommandRequest().getCommandMessage().getChatId();
         return Mono.fromSupplier(() -> {
             SendMessage sendMessage = new SendMessage();
-            sendMessage.setChatId(chatId);
+            sendMessage.setChatId(String.valueOf(chatId));
             sendMessage.setText(exception.getMessage());
 
             if (!isEmpty(exception.getErrorData().getOptions())) {
@@ -29,7 +29,7 @@ public class ChatValidationErrorHandler implements ErrorHandler<ChatValidationEx
                 List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
                 List<InlineKeyboardButton> rowInline = exception.getErrorData().getOptions().stream()
                         .map(option ->
-                                new InlineKeyboardButton().setText(option).setCallbackData(option))
+                                InlineKeyboardButton.builder().text(option).callbackData(option).build())
                         .collect(Collectors.toList());
 
                 rowsInline.add(rowInline);

@@ -16,6 +16,7 @@ import java.util.List;
 @Component
 public class DateValidationErrorHandler implements ErrorHandler<DateValidationException> {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ISO_DATE;
+
     @Override
     public Mono<? extends BotApiMethod<?>> handle(DateValidationException exception) {
         Long chatId = exception.getErrorData().getCommandRequest().getCommandMessage().getChatId();
@@ -26,28 +27,33 @@ public class DateValidationErrorHandler implements ErrorHandler<DateValidationEx
             List<InlineKeyboardButton> rowInline = new ArrayList<>();
             LocalDate currentDate = LocalDate.now();
 
-            rowInline.add(new InlineKeyboardButton()
-                    .setText("Сегодня")
-                    .setCallbackData(currentDate.format(DATE_FORMAT)));
+            rowInline.add(InlineKeyboardButton.builder()
+                    .text("Сегодня")
+                    .callbackData(currentDate.format(DATE_FORMAT))
+                    .build());
+            rowInline.add(InlineKeyboardButton.builder()
+                    .text("Вчера")
+                    .callbackData(currentDate.minusDays(1).format(DATE_FORMAT))
+                    .build());
+            rowInline.add(InlineKeyboardButton.builder()
+                    .text("2 дня назад")
+                    .callbackData(currentDate.minusDays(2).format(DATE_FORMAT))
+                    .build());
+            rowInline.add(InlineKeyboardButton.builder()
+                    .text("3 дня назад")
+                    .callbackData(currentDate.minusDays(3).format(DATE_FORMAT))
+                    .build());
 
-            rowInline.add(new InlineKeyboardButton()
-                    .setText("Вчера")
-                    .setCallbackData(currentDate.minusDays(1).format(DATE_FORMAT)));
-
-            rowInline.add(new InlineKeyboardButton()
-                    .setText("2 дня назад")
-                    .setCallbackData(currentDate.minusDays(2).format(DATE_FORMAT)));
-
-            rowInline.add(new InlineKeyboardButton()
-                    .setText("3 дня назад")
-                    .setCallbackData(currentDate.minusDays(3).format(DATE_FORMAT)));
 
             rowsInline.add(rowInline);
             markupInline.setKeyboard(rowsInline);
 
-            return new SendMessage().setChatId(chatId)
-                    .setText(exception.getMessage() + String.format(" (Формат: %s)", currentDate.format(DATE_FORMAT)))
-                    .setReplyMarkup(markupInline);
+            return SendMessage
+                    .builder()
+                    .chatId(Long.toString(chatId))
+                    .text(exception.getMessage() + String.format(" (Формат: %s)", currentDate.format(DATE_FORMAT)))
+                    .replyMarkup(markupInline)
+                    .build();
         });
     }
 }
