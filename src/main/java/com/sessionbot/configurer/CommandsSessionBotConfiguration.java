@@ -1,7 +1,7 @@
 package com.sessionbot.configurer;
 
 import com.sessionbot.commands.*;
-import com.sessionbot.commands.annotations.BotCommands;
+import com.sessionbot.commands.annotations.BotCommand;
 import com.sessionbot.errors.handler.BotCommandErrorHandler;
 import com.sessionbot.errors.handler.ChatValidationErrorHandler;
 import com.sessionbot.errors.handler.DateValidationErrorHandler;
@@ -18,7 +18,6 @@ import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Configuration
@@ -57,7 +56,7 @@ public class CommandsSessionBotConfiguration {
 
     @Bean
     public List<ReactiveBotCommand> reactiveBotCommand(ApplicationContext applicationContext, CommandsSessionCash commandsSessionCash) {
-        return applicationContext.getBeansWithAnnotation(BotCommands.class)
+        return applicationContext.getBeansWithAnnotation(BotCommand.class)
                 .values()
                 .stream()
                 .map(handler -> new ReactiveBotCommand(handler, commandsSessionCash))
@@ -66,13 +65,13 @@ public class CommandsSessionBotConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public HelpCommand helpCommand(List<BotCommand> botCommands) {
+    public HelpCommand helpCommand(List<IBotCommand> botCommands) {
         return new HelpCommand(botCommands);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public CommandsFactory commandsFactory(HelpCommand helpCommand, List<BotCommand> botCommands) {
+    public CommandsFactory commandsFactory(HelpCommand helpCommand, List<IBotCommand> botCommands) {
         return new CommandsFactory(helpCommand, botCommands);
     }
 

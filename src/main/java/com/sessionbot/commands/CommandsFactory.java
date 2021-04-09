@@ -10,20 +10,20 @@ import java.util.Map;
 @Slf4j
 public class CommandsFactory {
     private final HelpCommand helpCommand;
-    private final List<BotCommand> botCommands;
+    private final List<IBotCommand> botCommands;
 
-    private final Map<String, BotCommand> commandRegistryMap = new HashMap<>();
+    private final Map<String, IBotCommand> commandRegistryMap = new HashMap<>();
 
-    public CommandsFactory(HelpCommand helpCommand, List<BotCommand> botCommands) {
+    public CommandsFactory(HelpCommand helpCommand, List<IBotCommand> botCommands) {
         this.helpCommand = helpCommand;
         this.botCommands = botCommands;
     }
 
-    public final BotCommand getHelpCommand() {
+    public final IBotCommand getHelpCommand() {
         return helpCommand;
     }
 
-    public final BotCommand getCommand(String commandName) {
+    public final IBotCommand getCommand(String commandName) {
         return commandRegistryMap.getOrDefault(commandName, helpCommand);
     }
 

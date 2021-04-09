@@ -1,24 +1,20 @@
 
 package com.sessionbot.commands;
 
-import com.sessionbot.commands.annotations.CommandMethod;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
-public class HelpCommand implements BotCommand {
+public class HelpCommand implements IBotCommand {
 
-    private final List<BotCommand> botCommands;
+    private final List<IBotCommand> botCommands;
 
-    public HelpCommand(List<BotCommand> botCommands) {
+    public HelpCommand(List<IBotCommand> botCommands) {
         this.botCommands = new ArrayList<>(botCommands);
     }
 

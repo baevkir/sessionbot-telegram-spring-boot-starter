@@ -5,7 +5,7 @@ import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import reactor.core.publisher.Mono;
 
 @Slf4j
-public class ReactiveBotCommand implements BotCommand{
+public class ReactiveBotCommand implements IBotCommand {
     public final static String COMMAND_INIT_CHARACTER = "/";
 
     private final CommandsSessionCash commandsSessionCash;

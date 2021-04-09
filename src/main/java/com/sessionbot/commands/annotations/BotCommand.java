@@ -8,7 +8,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Component
-public @interface BotCommands {
+public @interface BotCommand {
     String value();
     String description() default "";
 }

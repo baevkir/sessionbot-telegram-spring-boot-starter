@@ -3,7 +3,7 @@ package com.sessionbot.commands;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.collect.Iterables;
-import com.sessionbot.commands.annotations.BotCommands;
+import com.sessionbot.commands.annotations.BotCommand;
 import com.sessionbot.commands.annotations.Param;
 import com.sessionbot.commands.annotations.CommandMethod;
 import com.sessionbot.errors.ErrorData;
@@ -45,11 +45,11 @@ public class CommandsDescriptor {
     }
 
     public String getCommandId() {
-        return command.getClass().getAnnotation(BotCommands.class).value();
+        return command.getClass().getAnnotation(BotCommand.class).value();
     }
 
     public String getCommandDescription() {
-        return command.getClass().getAnnotation(BotCommands.class).description();
+        return command.getClass().getAnnotation(BotCommand.class).description();
     }
 
     @SuppressWarnings("unchecked")
