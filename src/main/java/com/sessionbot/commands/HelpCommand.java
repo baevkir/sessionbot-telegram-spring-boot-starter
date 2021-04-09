@@ -11,11 +11,16 @@ import java.util.List;
 
 @Slf4j
 public class HelpCommand implements IBotCommand {
+    public final static String COMMAND_INIT_CHARACTER = "/";
 
     private final List<IBotCommand> botCommands;
 
     public HelpCommand(List<IBotCommand> botCommands) {
         this.botCommands = new ArrayList<>(botCommands);
+    }
+
+    public List<IBotCommand> getBotCommands() {
+        return botCommands;
     }
 
     @Override
@@ -34,9 +39,9 @@ public class HelpCommand implements IBotCommand {
             StringBuilder helpMessageBuilder = new StringBuilder("<b>Помощь</b>\n");
             helpMessageBuilder.append("Следующие команды зарегистрированны для бота:\n\n");
 
-            helpMessageBuilder.append(toString()).append("\n\n");
+            helpMessageBuilder.append(getCommandPresenter(this)).append("\n\n");
 
-            botCommands.forEach(botCommand -> helpMessageBuilder.append(botCommand.toString()).append("\n\n"));
+            botCommands.forEach(botCommand -> helpMessageBuilder.append(getCommandPresenter(botCommand)).append("\n\n"));
 
             SendMessage helpMessage = new SendMessage();
             helpMessage.setChatId(commandRequest.getCommandMessage().getChat().getId());
@@ -46,4 +51,8 @@ public class HelpCommand implements IBotCommand {
         });
     }
 
+    private String getCommandPresenter(IBotCommand command) {
+            return "<b>" + COMMAND_INIT_CHARACTER + command.getCommandIdentifier() +
+                    "</b>\n" + command.getDescription();
+    }
 }

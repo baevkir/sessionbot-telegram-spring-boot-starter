@@ -55,7 +55,7 @@ public class CommandsSessionBotConfiguration {
     }
 
     @Bean
-    public List<ReactiveBotCommand> reactiveBotCommand(ApplicationContext applicationContext, CommandsSessionCash commandsSessionCash) {
+    public List<IBotCommand> reactiveBotCommand(ApplicationContext applicationContext, CommandsSessionCash commandsSessionCash) {
         return applicationContext.getBeansWithAnnotation(BotCommand.class)
                 .values()
                 .stream()
@@ -71,8 +71,8 @@ public class CommandsSessionBotConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public CommandsFactory commandsFactory(HelpCommand helpCommand, List<IBotCommand> botCommands) {
-        return new CommandsFactory(helpCommand, botCommands);
+    public CommandsFactory commandsFactory(HelpCommand helpCommand) {
+        return new CommandsFactory(helpCommand, helpCommand.getBotCommands());
     }
 
     @Bean

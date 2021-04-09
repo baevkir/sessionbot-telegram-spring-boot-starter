@@ -6,7 +6,6 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 public class ReactiveBotCommand implements IBotCommand {
-    public final static String COMMAND_INIT_CHARACTER = "/";
 
     private final CommandsSessionCash commandsSessionCash;
     private final CommandsDescriptor commandsDescriptor;
@@ -37,11 +36,5 @@ public class ReactiveBotCommand implements IBotCommand {
     @Override
     public String getDescription() {
         return commandsDescriptor.getCommandDescription();
-    }
-
-    @Override
-    public String toString() {
-        return "<b>" + COMMAND_INIT_CHARACTER + getCommandIdentifier() +
-                "</b>\n" + getDescription();
     }
 }
