@@ -1,4 +1,4 @@
-package com.sessionbot.annotations;
+package com.sessionbot.commands.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

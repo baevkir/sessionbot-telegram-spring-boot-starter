@@ -3,8 +3,9 @@ package com.sessionbot.commands;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.collect.Iterables;
-import com.sessionbot.annotations.Param;
-import com.sessionbot.annotations.CommandMethod;
+import com.sessionbot.commands.annotations.BotCommands;
+import com.sessionbot.commands.annotations.Param;
+import com.sessionbot.commands.annotations.CommandMethod;
 import com.sessionbot.errors.ErrorData;
 import com.sessionbot.errors.exception.BotCommandException;
 import com.sessionbot.errors.exception.validation.ChatValidationException;
@@ -31,16 +32,24 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
-public class CommandInvoker {
-    private final BotCommand command;
+public class CommandsDescriptor {
+    private final Object command;
     private final Map<String, Method> invokerMethods;
     private final ObjectMapper mapper;
 
-    public CommandInvoker(BotCommand command) {
+    public CommandsDescriptor(Object command) {
         this.command = command;
         this.invokerMethods = parseInvokerMethods(command);
         mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
+    }
+
+    public String getCommandId() {
+        return command.getClass().getAnnotation(BotCommands.class).value();
+    }
+
+    public String getCommandDescription() {
+        return command.getClass().getAnnotation(BotCommands.class).description();
     }
 
     @SuppressWarnings("unchecked")
@@ -109,7 +118,7 @@ public class CommandInvoker {
         }
     }
 
-    private Map<String, Method> parseInvokerMethods(BotCommand command) {
+    private Map<String, Method> parseInvokerMethods(Object command) {
         return Arrays.stream(command.getClass().getMethods())
                 .filter(method -> method.isAnnotationPresent(CommandMethod.class))
                 .peek(method -> log.debug("Find OperationMethod {} for class {}.", method, command.getClass()))

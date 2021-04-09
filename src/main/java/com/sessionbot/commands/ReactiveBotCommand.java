@@ -1,30 +1,23 @@
 package com.sessionbot.commands;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import reactor.core.publisher.Mono;
 
-import javax.annotation.PostConstruct;
-
 @Slf4j
-public abstract class ReactiveBotCommand implements BotCommand {
-
+public class ReactiveBotCommand implements BotCommand{
     public final static String COMMAND_INIT_CHARACTER = "/";
 
-    private CommandsSessionCash commandsSessionCash;
-    private final String commandIdentifier;
-    private final String description;
-    private CommandInvoker invoker;
+    private final CommandsSessionCash commandsSessionCash;
+    private final CommandsDescriptor commandsDescriptor;
 
-    public ReactiveBotCommand(String commandIdentifier, String description) {
-        this.commandIdentifier = commandIdentifier;
-        this.description = description;
+    public ReactiveBotCommand(Object handler, CommandsSessionCash commandsSessionCash) {
+        this.commandsDescriptor = new CommandsDescriptor(handler);
+        this.commandsSessionCash = commandsSessionCash;
     }
 
-    @Override
     public Mono<? extends BotApiMethod<?>> process(CommandRequest commandRequest) {
-        var invocationResult = invoker.invoke(commandRequest);
+        var invocationResult = commandsDescriptor.invoke(commandRequest);
         commandsSessionCash.updateSessionArguments(
                 commandRequest.getCommandMessage().getFrom().getId(),
                 commandRequest.getCommandMessage().getChatId(),
@@ -38,23 +31,12 @@ public abstract class ReactiveBotCommand implements BotCommand {
 
     @Override
     public String getCommandIdentifier() {
-        return commandIdentifier;
+        return commandsDescriptor.getCommandId();
     }
 
     @Override
     public String getDescription() {
-        return description;
-    }
-
-    @Autowired
-    public void setCommandsSessionCash(CommandsSessionCash commandsSessionCash) {
-        this.commandsSessionCash = commandsSessionCash;
-    }
-
-    @PostConstruct
-    public void init() {
-        log.trace("Start to find OperationMethod in class {}.", getClass());
-        invoker = new CommandInvoker(this);
+        return commandsDescriptor.getCommandDescription();
     }
 
     @Override

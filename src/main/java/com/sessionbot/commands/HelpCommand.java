@@ -1,9 +1,10 @@
 
 package com.sessionbot.commands;
 
-import com.sessionbot.annotations.CommandMethod;
+import com.sessionbot.commands.annotations.CommandMethod;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
@@ -13,18 +14,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
-public class HelpCommand extends ReactiveBotCommand {
+public class HelpCommand implements BotCommand {
 
-    private List<BotCommand> botCommands;
+    private final List<BotCommand> botCommands;
 
-    @Autowired
     public HelpCommand(List<BotCommand> botCommands) {
-        super("help", "Получить список доступных команд.");
         this.botCommands = new ArrayList<>(botCommands);
     }
 
-    @CommandMethod
-    public Mono<? extends BotApiMethod<?>> process(Message command) {
+    @Override
+    public String getCommandIdentifier() {
+        return "help";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Получить список доступных команд.";
+    }
+
+    @Override
+    public Mono<? extends BotApiMethod<?>> process(CommandRequest commandRequest) {
         return Mono.fromSupplier(() -> {
             StringBuilder helpMessageBuilder = new StringBuilder("<b>Помощь</b>\n");
             helpMessageBuilder.append("Следующие команды зарегистрированны для бота:\n\n");
@@ -34,10 +43,11 @@ public class HelpCommand extends ReactiveBotCommand {
             botCommands.forEach(botCommand -> helpMessageBuilder.append(botCommand.toString()).append("\n\n"));
 
             SendMessage helpMessage = new SendMessage();
-            helpMessage.setChatId(command.getChat().getId());
+            helpMessage.setChatId(commandRequest.getCommandMessage().getChat().getId());
             helpMessage.enableHtml(true);
             helpMessage.setText(helpMessageBuilder.toString());
             return helpMessage;
         });
     }
+
 }

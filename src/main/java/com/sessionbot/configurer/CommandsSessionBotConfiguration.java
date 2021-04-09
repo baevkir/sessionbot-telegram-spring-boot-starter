@@ -1,10 +1,7 @@
 package com.sessionbot.configurer;
 
-import com.sessionbot.commands.CommandsFactory;
-import com.sessionbot.commands.CommandsSessionBot;
-import com.sessionbot.commands.CommandsSessionCash;
-import com.sessionbot.commands.BotCommand;
-import com.sessionbot.commands.HelpCommand;
+import com.sessionbot.commands.*;
+import com.sessionbot.commands.annotations.BotCommands;
 import com.sessionbot.errors.handler.BotCommandErrorHandler;
 import com.sessionbot.errors.handler.ChatValidationErrorHandler;
 import com.sessionbot.errors.handler.DateValidationErrorHandler;
@@ -13,6 +10,7 @@ import com.sessionbot.errors.handler.ErrorHandlerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.telegram.telegrambots.ApiContextInitializer;
@@ -20,6 +18,8 @@ import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Configuration
 @ConditionalOnProperty(value = {"token", "bot-username"}, prefix = "sessionbot.telegram")
@@ -51,9 +51,17 @@ public class CommandsSessionBotConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
-    public CommandsFactory commandsFactory(HelpCommand helpCommand, List<BotCommand> botCommands) {
-        return new CommandsFactory(helpCommand, botCommands);
+    public CommandsSessionCash commandsSessionCash() {
+        return new CommandsSessionCash();
+    }
+
+    @Bean
+    public List<ReactiveBotCommand> reactiveBotCommand(ApplicationContext applicationContext, CommandsSessionCash commandsSessionCash) {
+        return applicationContext.getBeansWithAnnotation(BotCommands.class)
+                .values()
+                .stream()
+                .map(handler -> new ReactiveBotCommand(handler, commandsSessionCash))
+                .collect(Collectors.toList());
     }
 
     @Bean
@@ -63,8 +71,9 @@ public class CommandsSessionBotConfiguration {
     }
 
     @Bean
-    public CommandsSessionCash commandsSessionCash() {
-        return new CommandsSessionCash();
+    @ConditionalOnMissingBean
+    public CommandsFactory commandsFactory(HelpCommand helpCommand, List<BotCommand> botCommands) {
+        return new CommandsFactory(helpCommand, botCommands);
     }
 
     @Bean

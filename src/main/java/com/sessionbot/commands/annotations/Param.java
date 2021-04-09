@@ -1,4 +1,4 @@
-package com.sessionbot.annotations;
+package com.sessionbot.commands.annotations;
 
 import com.sessionbot.errors.exception.validation.ChatValidationException;
 
