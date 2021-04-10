@@ -1,32 +1,31 @@
-package com.sessionbot.commands;
+package com.sessionbot.commands.dispatcher;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.collect.Iterables;
-import com.sessionbot.commands.annotations.BotCommand;
-import com.sessionbot.commands.annotations.Param;
-import com.sessionbot.commands.annotations.CommandMethod;
-import com.sessionbot.errors.ErrorData;
-import com.sessionbot.errors.exception.BotCommandException;
-import com.sessionbot.errors.exception.validation.ChatValidationException;
+import com.sessionbot.commands.CommandRequest;
+import com.sessionbot.commands.dispatcher.annotations.BotCommand;
+import com.sessionbot.commands.dispatcher.annotations.CommandMethod;
+import com.sessionbot.commands.dispatcher.annotations.Parameter;
+import com.sessionbot.commands.errors.ErrorData;
+import com.sessionbot.commands.errors.exception.BotCommandException;
+import com.sessionbot.commands.errors.exception.validation.ChatValidationException;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.ReflectionUtils;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -70,8 +69,9 @@ public class CommandsDescriptor {
                             command,
                             arguments
                     );
-                }).flatMap(invokeResult -> (Mono<? extends BotApiMethod<?>>) Objects.requireNonNull(invokeResult))
-                        .onErrorMap(error -> new BotCommandException(commandRequest, error));
+                })
+                .flatMap(result -> InvocationResultResolver.of(result).resolve())
+                .onErrorMap(error -> new BotCommandException(commandRequest, error));
             }
         } catch (Throwable error) {
             invocationResult.invocationError = new BotCommandException(commandRequest, error);
@@ -80,7 +80,7 @@ public class CommandsDescriptor {
         return invocationResult;
     }
 
-    private Object getMethodArgument(Parameter parameter, CommandRequest commandRequest, InvocationResult invocationResult) {
+    private Object getMethodArgument(java.lang.reflect.Parameter parameter, CommandRequest commandRequest, InvocationResult invocationResult) {
         if (invocationResult.hasErrors()) {
             return null;
         }
@@ -89,7 +89,7 @@ public class CommandsDescriptor {
         } else if (Update.class.equals(parameter.getType()) && parameter.getName().equals("update")) {
             return commandRequest.getUpdate();
         }
-        Param param = parameter.getAnnotation(Param.class);
+        Parameter param = parameter.getAnnotation(Parameter.class);
         int index = param.index();
         if (index < commandRequest.getArguments().size()) {
             Object argument = mapper.convertValue(commandRequest.getArguments().get(index), parameter.getType());
@@ -104,10 +104,10 @@ public class CommandsDescriptor {
         throw createValidationException(commandRequest, param);
     }
 
-    private ChatValidationException createValidationException(CommandRequest commandRequest, Param param) {
-        String message = String.format("Пожалуйста укажите поле '%s'.", param.displayName());
+    private ChatValidationException createValidationException(CommandRequest commandRequest, Parameter parameter) {
+        String message = String.format("Пожалуйста укажите поле '%s'.", parameter.name());
         try {
-            Constructor<? extends ChatValidationException> constructor = param.errorType().getConstructor(ErrorData.class);
+            Constructor<? extends ChatValidationException> constructor = parameter.errorType().getConstructor(ErrorData.class);
             return constructor.newInstance(ErrorData.builder()
                     .text(message)
                     .commandRequest(commandRequest)
@@ -157,7 +157,7 @@ public class CommandsDescriptor {
     @Getter
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static class InvocationResult {
-        private Mono<? extends BotApiMethod<?>> invocation;
+        private Mono<? extends PartialBotApiMethod<?>> invocation;
         private Method invocationMethod;
         private final List<Object> commandArguments = new ArrayList<>();
         private Throwable invocationError;

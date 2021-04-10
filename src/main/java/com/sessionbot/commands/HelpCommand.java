@@ -2,7 +2,7 @@
 package com.sessionbot.commands;
 
 import lombok.extern.slf4j.Slf4j;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import reactor.core.publisher.Mono;
 
@@ -34,7 +34,7 @@ public class HelpCommand implements IBotCommand {
     }
 
     @Override
-    public Mono<? extends BotApiMethod<?>> process(CommandRequest commandRequest) {
+    public Mono<? extends PartialBotApiMethod<?>> process(CommandRequest commandRequest) {
         return Mono.fromSupplier(() -> {
             StringBuilder helpMessageBuilder = new StringBuilder("<b>Помощь</b>\n");
             helpMessageBuilder.append("Следующие команды зарегистрированны для бота:\n\n");

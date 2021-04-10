@@ -1,7 +1,7 @@
-package com.sessionbot.errors.handler;
+package com.sessionbot.commands.errors.handler;
 
-import com.sessionbot.errors.exception.BotCommandException;
-import com.sessionbot.commands.CommandsSessionCash;
+import com.sessionbot.commands.errors.exception.BotCommandException;
+import com.sessionbot.commands.CommandSessionsHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
@@ -12,10 +12,10 @@ import java.util.Optional;
 
 @Slf4j
 public class BotCommandErrorHandler implements ErrorHandler<BotCommandException>{
-    private final CommandsSessionCash commandsSessionCash;
+    private final CommandSessionsHolder commandSessionsHolder;
 
-    public BotCommandErrorHandler(CommandsSessionCash commandsSessionCash) {
-        this.commandsSessionCash = commandsSessionCash;
+    public BotCommandErrorHandler(CommandSessionsHolder commandSessionsHolder) {
+        this.commandSessionsHolder = commandSessionsHolder;
     }
 
     @Override
@@ -25,7 +25,7 @@ public class BotCommandErrorHandler implements ErrorHandler<BotCommandException>
         Long chatId = exception.getCommandRequest().getCommandMessage().getChatId();
         log.error(botMessage, exception);
         return Mono.fromSupplier(() -> {
-            commandsSessionCash.closeSession(exception.getCommandRequest().getCommandMessage());
+            commandSessionsHolder.closeSession(exception.getCommandRequest().getCommandMessage());
 
             return SendMessage
                     .builder()

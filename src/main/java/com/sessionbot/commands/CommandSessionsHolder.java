@@ -5,37 +5,48 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.Assert;
+import org.telegram.telegrambots.extensions.bots.commandbot.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
-public class CommandsSessionCash {
-    private final Map<SessionKey, SessionValue> cash = new ConcurrentHashMap<>();
+public class CommandSessionsHolder {
+    private final Map<SessionKey, SessionValue> sessions = new ConcurrentHashMap<>();
 
-    public SessionValue openNewSession(Message commandMessage, String command, List<Object> arguments) {
+    public SessionValue openNewSession(Message commandMessage) {
         Objects.requireNonNull(commandMessage, "command is null");
         Assert.isTrue(commandMessage.isCommand(), "message is not a command");
+        Assert.isTrue(commandMessage.hasText(), "Command should contains text.");
 
+        String commandText = commandMessage.getText().substring(1);
+        String[] commandSplit = commandText.split(BotCommand.COMMAND_PARAMETER_SEPARATOR_REGEXP);
+
+        String command = commandSplit[0];
+
+        List<Object> arguments = Stream.of(commandSplit).skip(1).collect(Collectors.toList());
         SessionValue cashValue = new SessionValue(commandMessage, command, arguments);
-        cash.put(new SessionKey(commandMessage), cashValue);
+
+        sessions.put(new SessionKey(commandMessage), cashValue);
         return cashValue;
     }
 
     public SessionValue getSession(Long userId, Long chatId) {
         Objects.requireNonNull(userId, "userId is null");
         Objects.requireNonNull(chatId, "chatId is null");
-        return cash.get(new SessionKey(userId, chatId));
+        return sessions.get(new SessionKey(userId, chatId));
     }
 
     public SessionValue updateSessionArguments(Long userId, Long chatId, List<Object> arguments) {
         Objects.requireNonNull(userId, "userId is null");
         Objects.requireNonNull(chatId, "chatId is null");
         Objects.requireNonNull(arguments, "arguments is null");
-        SessionValue cashValue = cash.get(new SessionKey(userId, chatId));
+        SessionValue cashValue = sessions.get(new SessionKey(userId, chatId));
         if (cashValue != null) {
             cashValue.arguments = arguments;
         }
@@ -46,7 +57,7 @@ public class CommandsSessionCash {
         Objects.requireNonNull(commandMessage, "command is null");
         Assert.isTrue(commandMessage.isCommand(), "message is not a command");
 
-        cash.remove(new SessionKey(commandMessage));
+        sessions.remove(new SessionKey(commandMessage));
     }
 
     private static class SessionKey {

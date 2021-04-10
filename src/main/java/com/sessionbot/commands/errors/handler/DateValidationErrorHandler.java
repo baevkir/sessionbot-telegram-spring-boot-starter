@@ -1,6 +1,6 @@
-package com.sessionbot.errors.handler;
+package com.sessionbot.commands.errors.handler;
 
-import com.sessionbot.errors.exception.validation.DateValidationException;
+import com.sessionbot.commands.errors.exception.validation.DateValidationException;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;

@@ -1,6 +1,6 @@
-package com.sessionbot.errors.exception.validation;
+package com.sessionbot.commands.errors.exception.validation;
 
-import com.sessionbot.errors.ErrorData;
+import com.sessionbot.commands.errors.ErrorData;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 

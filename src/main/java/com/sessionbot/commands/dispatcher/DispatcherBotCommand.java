@@ -1,23 +1,26 @@
-package com.sessionbot.commands;
+package com.sessionbot.commands.dispatcher;
 
+import com.sessionbot.commands.CommandRequest;
+import com.sessionbot.commands.CommandSessionsHolder;
+import com.sessionbot.commands.IBotCommand;
 import lombok.extern.slf4j.Slf4j;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import reactor.core.publisher.Mono;
 
 @Slf4j
-public class ReactiveBotCommand implements IBotCommand {
+public class DispatcherBotCommand implements IBotCommand {
 
-    private final CommandsSessionCash commandsSessionCash;
+    private final CommandSessionsHolder commandSessionsHolder;
     private final CommandsDescriptor commandsDescriptor;
 
-    public ReactiveBotCommand(Object handler, CommandsSessionCash commandsSessionCash) {
+    public DispatcherBotCommand(Object handler, CommandSessionsHolder commandSessionsHolder) {
         this.commandsDescriptor = new CommandsDescriptor(handler);
-        this.commandsSessionCash = commandsSessionCash;
+        this.commandSessionsHolder = commandSessionsHolder;
     }
 
-    public Mono<? extends BotApiMethod<?>> process(CommandRequest commandRequest) {
+    public Mono<? extends PartialBotApiMethod<?>> process(CommandRequest commandRequest) {
         var invocationResult = commandsDescriptor.invoke(commandRequest);
-        commandsSessionCash.updateSessionArguments(
+        commandSessionsHolder.updateSessionArguments(
                 commandRequest.getCommandMessage().getFrom().getId(),
                 commandRequest.getCommandMessage().getChatId(),
                 invocationResult.getCommandArguments()

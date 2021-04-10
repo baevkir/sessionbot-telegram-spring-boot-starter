@@ -1,6 +1,6 @@
-package com.sessionbot.errors.handler;
+package com.sessionbot.commands.errors.handler;
 
-import com.sessionbot.errors.exception.validation.ChatValidationException;
+import com.sessionbot.commands.errors.exception.validation.ChatValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;

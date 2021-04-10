@@ -1,4 +1,4 @@
-package com.sessionbot.errors;
+package com.sessionbot.commands.errors;
 
 import com.sessionbot.commands.CommandRequest;
 import lombok.Builder;

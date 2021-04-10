@@ -1,12 +1,13 @@
 package com.sessionbot.configurer;
 
 import com.sessionbot.commands.*;
-import com.sessionbot.commands.annotations.BotCommand;
-import com.sessionbot.errors.handler.BotCommandErrorHandler;
-import com.sessionbot.errors.handler.ChatValidationErrorHandler;
-import com.sessionbot.errors.handler.DateValidationErrorHandler;
-import com.sessionbot.errors.handler.ErrorHandler;
-import com.sessionbot.errors.handler.ErrorHandlerFactory;
+import com.sessionbot.commands.dispatcher.annotations.BotCommand;
+import com.sessionbot.commands.dispatcher.DispatcherBotCommand;
+import com.sessionbot.commands.errors.handler.BotCommandErrorHandler;
+import com.sessionbot.commands.errors.handler.ChatValidationErrorHandler;
+import com.sessionbot.commands.errors.handler.DateValidationErrorHandler;
+import com.sessionbot.commands.errors.handler.ErrorHandler;
+import com.sessionbot.commands.errors.handler.ErrorHandlerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -35,27 +36,27 @@ public class CommandsSessionBotConfiguration {
     @Bean
     public CommandsSessionBot bot(
             CommandsFactory commandsFactory,
-            CommandsSessionCash commandsSessionCash,
+            CommandSessionsHolder commandSessionsHolder,
             ErrorHandlerFactory errorHandler,
             CommandsSessionBotProperties properties) {
 
-        CommandsSessionBot commandsSessionBot = new CommandsSessionBot(commandsFactory, commandsSessionCash, errorHandler);
+        CommandsSessionBot commandsSessionBot = new CommandsSessionBot(commandsFactory, commandSessionsHolder, errorHandler);
         commandsSessionBot.setBotUserName(properties.getBotUsername());
         commandsSessionBot.setToken(properties.getToken());
         return commandsSessionBot;
     }
 
     @Bean
-    public CommandsSessionCash commandsSessionCash() {
-        return new CommandsSessionCash();
+    public CommandSessionsHolder commandsSessionCash() {
+        return new CommandSessionsHolder();
     }
 
     @Bean
-    public List<IBotCommand> reactiveBotCommand(ApplicationContext applicationContext, CommandsSessionCash commandsSessionCash) {
+    public List<IBotCommand> reactiveBotCommand(ApplicationContext applicationContext, CommandSessionsHolder commandSessionsHolder) {
         return applicationContext.getBeansWithAnnotation(BotCommand.class)
                 .values()
                 .stream()
-                .map(handler -> new ReactiveBotCommand(handler, commandsSessionCash))
+                .map(handler -> new DispatcherBotCommand(handler, commandSessionsHolder))
                 .collect(Collectors.toList());
     }
 
@@ -78,7 +79,7 @@ public class CommandsSessionBotConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public BotCommandErrorHandler botCommandErrorHandler(CommandsSessionCash commandsSession) {
+    public BotCommandErrorHandler botCommandErrorHandler(CommandSessionsHolder commandsSession) {
         return new BotCommandErrorHandler(commandsSession);
     }
 
