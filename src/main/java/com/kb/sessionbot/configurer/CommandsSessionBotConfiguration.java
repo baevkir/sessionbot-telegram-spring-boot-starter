@@ -7,7 +7,6 @@ import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
 import com.kb.sessionbot.commands.errors.handler.BotCommandErrorHandler;
 import com.kb.sessionbot.commands.errors.handler.ErrorHandler;
 import com.kb.sessionbot.commands.errors.handler.ErrorHandlerFactory;
-import com.sessionbot.commands.*;
 import com.kb.sessionbot.commands.dispatcher.annotations.BotCommand;
 import com.kb.sessionbot.commands.dispatcher.DispatcherBotCommand;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
