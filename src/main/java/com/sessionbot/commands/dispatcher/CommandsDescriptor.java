@@ -9,7 +9,6 @@ import com.sessionbot.commands.dispatcher.annotations.CommandMethod;
 import com.sessionbot.commands.dispatcher.annotations.Parameter;
 import com.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
 import com.sessionbot.commands.dispatcher.parameters.ParameterRequest;
-import com.sessionbot.commands.errors.ErrorData;
 import com.sessionbot.commands.errors.exception.BotCommandException;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -146,6 +145,9 @@ public class CommandsDescriptor {
     }
 
     private Method findInvokerMethod(CommandRequest commandRequest, InvocationResult invocationResult) {
+        if (invokerMethods.keySet().size() == 1) {
+            return Iterables.getFirst(invokerMethods.values(), null);
+        }
         Object argument = Iterables.getFirst(commandRequest.getArguments(), commandRequest.getPendingArgument());
         Method defaultMethod = invokerMethods.get("");
 
