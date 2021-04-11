@@ -74,25 +74,23 @@ public class CommandsSessionBotConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(name = "defaultParameterRenderer")
     public ParameterRenderer defaultParameterRenderer() {
        return new DefaultParameterRenderer();
     }
 
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(name = "dateParameterRenderer")
     public ParameterRenderer dateParameterRenderer() {
         return new DateParameterRenderer();
     }
 
     @Bean
-    @SuppressWarnings("uncheked")
     public ErrorHandlerFactory errorHandlerFactory(List<ErrorHandler<?>> errorHandlers) {
         return new ErrorHandlerFactory(errorHandlers);
     }
 
     @Bean
-    @ConditionalOnMissingBean
     public BotCommandErrorHandler botCommandErrorHandler(CommandSessionsHolder commandsSession) {
         return new BotCommandErrorHandler(commandsSession);
     }

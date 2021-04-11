@@ -32,8 +32,7 @@ public class DispatcherBotCommand implements IBotCommand {
         if (invocationResult.getInvocationArgument() != null) {
             return invocationResult.getInvocationArgument();
         }
-        return invocationResult.getInvocation()
-                .doAfterTerminate(() -> commandSessionsHolder.closeSession(commandRequest.getCommandMessage()));
+        return invocationResult.getInvocation();
     }
 
     @Override

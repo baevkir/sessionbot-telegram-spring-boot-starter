@@ -3,6 +3,7 @@ package com.sessionbot.commands.dispatcher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import com.sessionbot.commands.CommandRequest;
 import com.sessionbot.commands.dispatcher.annotations.BotCommand;
 import com.sessionbot.commands.dispatcher.annotations.CommandMethod;
@@ -22,10 +23,7 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -88,6 +86,7 @@ public class CommandsDescriptor {
                             ParameterRequest.builder()
                                     .text(String.format("Пожалуйста укажите поле '%s'.", param.name()))
                                     .commandRequest(commandRequest)
+                                    .options(Sets.newHashSet(param.options()))
                                     .build()
                     );
                    return invocationResult;
@@ -101,7 +100,7 @@ public class CommandsDescriptor {
                             return ReflectionUtils.invokeMethod(
                                     invocationResult.invocationMethod,
                                     command,
-                                    args
+                                    args.toArray()
                             );
                         })
                         .flatMap(result -> InvocationResultResolver.of(result).resolve())
