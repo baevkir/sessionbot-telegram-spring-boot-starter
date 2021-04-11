@@ -1,6 +1,6 @@
 package com.sessionbot.commands.dispatcher.annotations;
 
-import com.sessionbot.commands.errors.exception.validation.ChatValidationException;
+import com.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -12,5 +12,6 @@ import java.lang.annotation.Target;
 public @interface Parameter {
     int index();
     String name();
-    Class<? extends ChatValidationException> errorType() default ChatValidationException.class;
+    String rendering() default "defaultParameterRenderer";
+    Class<? extends ParameterRenderer> renderingType();
 }

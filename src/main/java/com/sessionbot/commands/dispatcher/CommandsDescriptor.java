@@ -7,6 +7,8 @@ import com.sessionbot.commands.CommandRequest;
 import com.sessionbot.commands.dispatcher.annotations.BotCommand;
 import com.sessionbot.commands.dispatcher.annotations.CommandMethod;
 import com.sessionbot.commands.dispatcher.annotations.Parameter;
+import com.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
+import com.sessionbot.commands.dispatcher.parameters.ParameterRequest;
 import com.sessionbot.commands.errors.ErrorData;
 import com.sessionbot.commands.errors.exception.BotCommandException;
 import com.sessionbot.commands.errors.exception.validation.ChatValidationException;
@@ -14,13 +16,13 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationContext;
 import org.springframework.util.ReflectionUtils;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import reactor.core.publisher.Mono;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,19 +30,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Slf4j
 public class CommandsDescriptor {
     private final Object command;
     private final Map<String, Method> invokerMethods;
     private final ObjectMapper mapper;
+    private final ApplicationContext applicationContext;
 
-    public CommandsDescriptor(Object command) {
+    public CommandsDescriptor(Object command, ApplicationContext applicationContext) {
         this.command = command;
         this.invokerMethods = parseInvokerMethods(command);
         mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
+        this.applicationContext = applicationContext;
     }
 
     public String getCommandId() {
@@ -51,27 +54,48 @@ public class CommandsDescriptor {
         return command.getClass().getAnnotation(BotCommand.class).description();
     }
 
-    @SuppressWarnings("unchecked")
     public InvocationResult invoke(CommandRequest commandRequest) {
         var invocationResult = new InvocationResult();
 
         try {
             invocationResult.invocationMethod = findInvokerMethod(commandRequest, invocationResult);
-            var arguments = Stream.of(invocationResult.invocationMethod.getParameters())
-                    .map(parameter -> getMethodArgument(parameter, commandRequest, invocationResult))
-                    .toArray();
+            var args = new ArrayList<>();
+            for (java.lang.reflect.Parameter parameter : invocationResult.invocationMethod.getParameters()) {
+                if (invocationResult.hasErrors()) {
+                    continue;
+                }
+                if (Message.class.equals(parameter.getType()) && parameter.getName().equals("command")) {
+                    args.add(commandRequest.getCommandMessage());
+                } else if (Update.class.equals(parameter.getType()) && parameter.getName().equals("update")) {
+                    args.add(commandRequest.getUpdate());
+                }
+                Parameter param = parameter.getAnnotation(Parameter.class);
+                int index = param.index();
+                if (index < commandRequest.getArguments().size()) {
+                    Object argument = mapper.convertValue(commandRequest.getArguments().get(index), parameter.getType());
+                    invocationResult.addArgument(argument);
+                    args.add(argument);
+                }
+                if (index == commandRequest.getArguments().size() && commandRequest.getPendingArgument() != null) {
+                    Object argument = mapper.convertValue(commandRequest.getPendingArgument(), parameter.getType());
+                    invocationResult.addArgument(argument);
+                    args.add(argument);
+                }
+                invocationResult.invocation = invokeParameterRendering(commandRequest, param);
+            }
 
             if (!invocationResult.hasErrors()) {
-                invocationResult.invocation = Mono.fromSupplier(() -> {
-                    ReflectionUtils.makeAccessible(invocationResult.invocationMethod);
-                    return ReflectionUtils.invokeMethod(
-                            invocationResult.invocationMethod,
-                            command,
-                            arguments
-                    );
-                })
-                .flatMap(result -> InvocationResultResolver.of(result).resolve())
-                .onErrorMap(error -> new BotCommandException(commandRequest, error));
+                invocationResult.invocation = Mono.fromSupplier(
+                        () -> {
+                            ReflectionUtils.makeAccessible(invocationResult.invocationMethod);
+                            return ReflectionUtils.invokeMethod(
+                                    invocationResult.invocationMethod,
+                                    command,
+                                    args
+                            );
+                        })
+                        .flatMap(result -> InvocationResultResolver.of(result).resolve())
+                        .onErrorMap(error -> new BotCommandException(commandRequest, error));
             }
         } catch (Throwable error) {
             invocationResult.invocationError = new BotCommandException(commandRequest, error);
@@ -80,49 +104,27 @@ public class CommandsDescriptor {
         return invocationResult;
     }
 
-    private Object getMethodArgument(java.lang.reflect.Parameter parameter, CommandRequest commandRequest, InvocationResult invocationResult) {
-        if (invocationResult.hasErrors()) {
-            return null;
-        }
-        if (Message.class.equals(parameter.getType()) && parameter.getName().equals("command")) {
-            return commandRequest.getCommandMessage();
-        } else if (Update.class.equals(parameter.getType()) && parameter.getName().equals("update")) {
-            return commandRequest.getUpdate();
-        }
-        Parameter param = parameter.getAnnotation(Parameter.class);
-        int index = param.index();
-        if (index < commandRequest.getArguments().size()) {
-            Object argument = mapper.convertValue(commandRequest.getArguments().get(index), parameter.getType());
-            invocationResult.addArgument(argument);
-            return argument;
-        }
-        if (index == commandRequest.getArguments().size() && commandRequest.getPendingArgument() != null) {
-            Object argument = mapper.convertValue(commandRequest.getPendingArgument(), parameter.getType());
-            invocationResult.addArgument(argument);
-            return argument;
-        }
-        throw createValidationException(commandRequest, param);
+    private Mono<? extends PartialBotApiMethod<?>> invokeParameterRendering(CommandRequest commandRequest, Parameter parameter) {
+        return getRenderer(parameter).render(
+                ParameterRequest.builder()
+                        .text(String.format("Пожалуйста укажите поле '%s'.", parameter.name()))
+                        .commandRequest(commandRequest)
+                        .build()
+        );
     }
 
-    private ChatValidationException createValidationException(CommandRequest commandRequest, Parameter parameter) {
-        String message = String.format("Пожалуйста укажите поле '%s'.", parameter.name());
-        try {
-            Constructor<? extends ChatValidationException> constructor = parameter.errorType().getConstructor(ErrorData.class);
-            return constructor.newInstance(ErrorData.builder()
-                    .text(message)
-                    .commandRequest(commandRequest)
-                    .build());
-
-        } catch (Exception exception) {
-            throw new RuntimeException(exception);
+    private ParameterRenderer getRenderer(Parameter parameter) {
+        if (parameter.renderingType() != null) {
+            return applicationContext.getBean(parameter.renderingType());
         }
+        return applicationContext.getBean(parameter.rendering(), ParameterRenderer.class);
     }
 
     private Map<String, Method> parseInvokerMethods(Object command) {
         return Arrays.stream(command.getClass().getMethods())
                 .filter(method -> method.isAnnotationPresent(CommandMethod.class))
                 .peek(method -> log.debug("Find OperationMethod {} for class {}.", method, command.getClass()))
-                .collect(Collectors.toMap(method -> method.getAnnotation(CommandMethod.class).argument(), Function.identity()));
+                .collect(Collectors.toMap(method -> method.getAnnotation(CommandMethod.class).name(), Function.identity()));
     }
 
     private Method findInvokerMethod(CommandRequest commandRequest, InvocationResult invocationResult) {

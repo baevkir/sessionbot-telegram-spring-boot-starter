@@ -4,6 +4,7 @@ import com.sessionbot.commands.CommandRequest;
 import com.sessionbot.commands.CommandSessionsHolder;
 import com.sessionbot.commands.IBotCommand;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationContext;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import reactor.core.publisher.Mono;
 
@@ -13,8 +14,8 @@ public class DispatcherBotCommand implements IBotCommand {
     private final CommandSessionsHolder commandSessionsHolder;
     private final CommandsDescriptor commandsDescriptor;
 
-    public DispatcherBotCommand(Object handler, CommandSessionsHolder commandSessionsHolder) {
-        this.commandsDescriptor = new CommandsDescriptor(handler);
+    public DispatcherBotCommand(Object handler, CommandSessionsHolder commandSessionsHolder, ApplicationContext applicationContext) {
+        this.commandsDescriptor = new CommandsDescriptor(handler, applicationContext);
         this.commandSessionsHolder = commandSessionsHolder;
     }
 

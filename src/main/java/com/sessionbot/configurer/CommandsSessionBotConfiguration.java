@@ -3,9 +3,10 @@ package com.sessionbot.configurer;
 import com.sessionbot.commands.*;
 import com.sessionbot.commands.dispatcher.annotations.BotCommand;
 import com.sessionbot.commands.dispatcher.DispatcherBotCommand;
+import com.sessionbot.commands.dispatcher.parameters.DateParameterRenderer;
+import com.sessionbot.commands.dispatcher.parameters.DefaultParameterRenderer;
+import com.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
 import com.sessionbot.commands.errors.handler.BotCommandErrorHandler;
-import com.sessionbot.commands.errors.handler.ChatValidationErrorHandler;
-import com.sessionbot.commands.errors.handler.DateValidationErrorHandler;
 import com.sessionbot.commands.errors.handler.ErrorHandler;
 import com.sessionbot.commands.errors.handler.ErrorHandlerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -56,7 +57,7 @@ public class CommandsSessionBotConfiguration {
         return applicationContext.getBeansWithAnnotation(BotCommand.class)
                 .values()
                 .stream()
-                .map(handler -> new DispatcherBotCommand(handler, commandSessionsHolder))
+                .map(handler -> new DispatcherBotCommand(handler, commandSessionsHolder, applicationContext))
                 .collect(Collectors.toList());
     }
 
@@ -73,6 +74,19 @@ public class CommandsSessionBotConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
+    public ParameterRenderer defaultParameterRenderer() {
+       return new DefaultParameterRenderer();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ParameterRenderer dateParameterRenderer() {
+        return new DateParameterRenderer();
+    }
+
+    @Bean
+    @SuppressWarnings("uncheked")
     public ErrorHandlerFactory errorHandlerFactory(List<ErrorHandler<?>> errorHandlers) {
         return new ErrorHandlerFactory(errorHandlers);
     }
@@ -81,15 +95,5 @@ public class CommandsSessionBotConfiguration {
     @ConditionalOnMissingBean
     public BotCommandErrorHandler botCommandErrorHandler(CommandSessionsHolder commandsSession) {
         return new BotCommandErrorHandler(commandsSession);
-    }
-
-    @Bean
-    public ChatValidationErrorHandler chatValidationErrorHandler() {
-        return new ChatValidationErrorHandler();
-    }
-
-    @Bean
-    public DateValidationErrorHandler dateValidationErrorHandler() {
-        return new DateValidationErrorHandler();
     }
 }

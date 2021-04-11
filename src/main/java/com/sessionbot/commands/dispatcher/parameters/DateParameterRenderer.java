@@ -1,8 +1,6 @@
-package com.sessionbot.commands.errors.handler;
+package com.sessionbot.commands.dispatcher.parameters;
 
-import com.sessionbot.commands.errors.exception.validation.DateValidationException;
-import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -13,13 +11,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-@Component
-public class DateValidationErrorHandler implements ErrorHandler<DateValidationException> {
+public class DateParameterRenderer implements ParameterRenderer{
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ISO_DATE;
 
     @Override
-    public Mono<? extends BotApiMethod<?>> handle(DateValidationException exception) {
-        Long chatId = exception.getErrorData().getCommandRequest().getCommandMessage().getChatId();
+    public Mono<? extends PartialBotApiMethod<?>> render(ParameterRequest parameterRequest) {
+        Long chatId = parameterRequest.getCommandRequest().getCommandMessage().getChatId();
         return Mono.fromSupplier(() -> {
 
             InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
@@ -51,7 +48,7 @@ public class DateValidationErrorHandler implements ErrorHandler<DateValidationEx
             return SendMessage
                     .builder()
                     .chatId(Long.toString(chatId))
-                    .text(exception.getMessage() + String.format(" (Формат: %s)", currentDate.format(DATE_FORMAT)))
+                    .text(String.format("%s (Формат: %s)", parameterRequest.getText(), currentDate.format(DATE_FORMAT)))
                     .replyMarkup(markupInline)
                     .build();
         });
