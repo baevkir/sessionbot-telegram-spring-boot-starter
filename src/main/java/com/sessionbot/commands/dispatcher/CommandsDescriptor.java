@@ -11,7 +11,6 @@ import com.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
 import com.sessionbot.commands.dispatcher.parameters.ParameterRequest;
 import com.sessionbot.commands.errors.ErrorData;
 import com.sessionbot.commands.errors.exception.BotCommandException;
-import com.sessionbot.commands.errors.exception.validation.ChatValidationException;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -59,6 +58,14 @@ public class CommandsDescriptor {
 
         try {
             invocationResult.invocationMethod = findInvokerMethod(commandRequest, invocationResult);
+            if (invocationResult.invocationMethod == null) {
+                if (invocationResult.invocationArgument != null) {
+                    return invocationResult;
+                }
+                throw new RuntimeException(
+                        "Cannot find command method for " + commandRequest.getCommand() + " with arguments " + commandRequest.getArguments()
+                );
+            }
             var args = new ArrayList<>();
             for (java.lang.reflect.Parameter parameter : invocationResult.invocationMethod.getParameters()) {
                 if (invocationResult.hasErrors()) {
@@ -66,22 +73,26 @@ public class CommandsDescriptor {
                 }
                 if (Message.class.equals(parameter.getType()) && parameter.getName().equals("command")) {
                     args.add(commandRequest.getCommandMessage());
+                    continue;
                 } else if (Update.class.equals(parameter.getType()) && parameter.getName().equals("update")) {
                     args.add(commandRequest.getUpdate());
+                    continue;
                 }
-                Parameter param = parameter.getAnnotation(Parameter.class);
-                int index = param.index();
-                if (index < commandRequest.getArguments().size()) {
-                    Object argument = mapper.convertValue(commandRequest.getArguments().get(index), parameter.getType());
+
+                Object argument = getArgument(commandRequest, parameter);
+                if (argument != null) {
                     invocationResult.addArgument(argument);
                     args.add(argument);
+                } else {
+                    Parameter param = parameter.getAnnotation(Parameter.class);
+                    invocationResult.invocationArgument = getRenderer(param).render(
+                            ParameterRequest.builder()
+                                    .text(String.format("Пожалуйста укажите поле '%s'.", param.name()))
+                                    .commandRequest(commandRequest)
+                                    .build()
+                    );
+                   return invocationResult;
                 }
-                if (index == commandRequest.getArguments().size() && commandRequest.getPendingArgument() != null) {
-                    Object argument = mapper.convertValue(commandRequest.getPendingArgument(), parameter.getType());
-                    invocationResult.addArgument(argument);
-                    args.add(argument);
-                }
-                invocationResult.invocation = invokeParameterRendering(commandRequest, param);
             }
 
             if (!invocationResult.hasErrors()) {
@@ -104,17 +115,24 @@ public class CommandsDescriptor {
         return invocationResult;
     }
 
-    private Mono<? extends PartialBotApiMethod<?>> invokeParameterRendering(CommandRequest commandRequest, Parameter parameter) {
-        return getRenderer(parameter).render(
-                ParameterRequest.builder()
-                        .text(String.format("Пожалуйста укажите поле '%s'.", parameter.name()))
-                        .commandRequest(commandRequest)
-                        .build()
-        );
+    private Object getArgument(CommandRequest commandRequest, java.lang.reflect.Parameter parameter) {
+        Parameter param = parameter.getAnnotation(Parameter.class);
+        int index = param.index();
+        if (index < commandRequest.getArguments().size()) {
+            return mapper.convertValue(commandRequest.getArguments().get(index), parameter.getType());
+        }
+        if (index == commandRequest.getArguments().size() && commandRequest.getPendingArgument() != null) {
+            return mapper.convertValue(commandRequest.getPendingArgument(), parameter.getType());
+        }
+        return null;
+    }
+
+    private ParameterRenderer getDefaultRenderer() {
+        return applicationContext.getBean("defaultParameterRenderer", ParameterRenderer.class);
     }
 
     private ParameterRenderer getRenderer(Parameter parameter) {
-        if (parameter.renderingType() != null) {
+        if (parameter.renderingType() != ParameterRenderer.class) {
             return applicationContext.getBean(parameter.renderingType());
         }
         return applicationContext.getBean(parameter.rendering(), ParameterRenderer.class);
@@ -135,22 +153,28 @@ public class CommandsDescriptor {
             if (defaultMethod != null) {
                 return defaultMethod;
             }
-            throw new ChatValidationException(ErrorData.builder()
-                    .commandRequest(commandRequest)
-                    .text(String.format("Пожалуйста выберите опцию для команды '%s'", commandRequest.getCommand()))
-                    .options(invokerMethods.keySet())
-                    .build());
+            invocationResult.invocationArgument = getDefaultRenderer().render(
+                    ParameterRequest.builder()
+                            .commandRequest(commandRequest)
+                            .text(String.format("Пожалуйста выберите опцию для команды '%s'", commandRequest.getCommand()))
+                            .options(invokerMethods.keySet())
+                            .build()
+            );
+            return null;
         }
         Method method = invokerMethods.get(argument.toString());
         if (method == null) {
             if (defaultMethod != null) {
                 return defaultMethod;
             }
-            throw new ChatValidationException(ErrorData.builder()
-                    .commandRequest(commandRequest)
-                    .text(String.format("Опция '%s' не поддерживается для команды %s", argument, commandRequest.getCommand()))
-                    .options(invokerMethods.keySet())
-                    .build());
+            invocationResult.invocationArgument = getDefaultRenderer().render(
+                    ParameterRequest.builder()
+                            .commandRequest(commandRequest)
+                            .text(String.format("Опция '%s' не поддерживается для команды %s", argument, commandRequest.getCommand()))
+                            .options(invokerMethods.keySet())
+                            .build()
+            );
+            return null;
         }
         invocationResult.addArgument(argument);
         return method;
@@ -160,6 +184,7 @@ public class CommandsDescriptor {
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static class InvocationResult {
         private Mono<? extends PartialBotApiMethod<?>> invocation;
+        private Mono<? extends PartialBotApiMethod<?>> invocationArgument;
         private Method invocationMethod;
         private final List<Object> commandArguments = new ArrayList<>();
         private Throwable invocationError;

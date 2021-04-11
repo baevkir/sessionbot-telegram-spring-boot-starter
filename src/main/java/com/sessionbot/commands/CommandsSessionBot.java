@@ -9,7 +9,6 @@ import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import reactor.core.publisher.Sinks;
 
 import java.util.Collections;
 import java.util.Optional;
@@ -42,8 +41,7 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
 
         commandsFactory.getCommand(commandRequest.get().getCommand()).process(commandRequest.get()).subscribe(
                 this::executeMessage,
-                error -> errorHandler.handle(error).subscribe(this::executeMessage),
-                () -> commandSessionsHolder.closeSession(commandRequest.get().getCommandMessage())
+                error -> errorHandler.handle(error).subscribe(this::executeMessage)
         );
     }
 
@@ -51,7 +49,6 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
     public String getBotToken() {
         return token;
     }
-
 
     @Override
     public String getBotUsername() {

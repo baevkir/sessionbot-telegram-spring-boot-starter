@@ -13,5 +13,5 @@ public @interface Parameter {
     int index();
     String name();
     String rendering() default "defaultParameterRenderer";
-    Class<? extends ParameterRenderer> renderingType();
+    Class<? extends ParameterRenderer> renderingType() default ParameterRenderer.class;
 }

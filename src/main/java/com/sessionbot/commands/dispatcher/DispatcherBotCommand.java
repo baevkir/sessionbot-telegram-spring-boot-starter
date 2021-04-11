@@ -29,7 +29,11 @@ public class DispatcherBotCommand implements IBotCommand {
         if (invocationResult.hasErrors()) {
             return Mono.error(invocationResult.getInvocationError());
         }
-        return invocationResult.getInvocation();
+        if (invocationResult.getInvocationArgument() != null) {
+            return invocationResult.getInvocationArgument();
+        }
+        return invocationResult.getInvocation()
+                .doAfterTerminate(() -> commandSessionsHolder.closeSession(commandRequest.getCommandMessage()));
     }
 
     @Override
