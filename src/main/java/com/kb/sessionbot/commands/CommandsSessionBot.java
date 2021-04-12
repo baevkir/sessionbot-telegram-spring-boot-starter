@@ -101,7 +101,7 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
                 throw new UnsupportedOperationException("Message type " + message.getClass().getSimpleName() + " is not supported yet");
             }
         } catch (TelegramApiException e) {
-            log.error("Cannot execute message");
+            log.error("Cannot execute message", e);
         }
     }
 
