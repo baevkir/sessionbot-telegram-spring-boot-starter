@@ -1,9 +1,11 @@
 package com.kb.sessionbot.configurer;
 
 import com.kb.sessionbot.commands.*;
+import com.kb.sessionbot.commands.auth.AuthInterceptor;
 import com.kb.sessionbot.commands.dispatcher.parameters.DateParameterRenderer;
 import com.kb.sessionbot.commands.dispatcher.parameters.DefaultParameterRenderer;
 import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
+import com.kb.sessionbot.commands.errors.handler.BotAuthErrorHandler;
 import com.kb.sessionbot.commands.errors.handler.BotCommandErrorHandler;
 import com.kb.sessionbot.commands.errors.handler.ErrorHandler;
 import com.kb.sessionbot.commands.errors.handler.ErrorHandlerFactory;
@@ -39,9 +41,10 @@ public class CommandsSessionBotConfiguration {
             CommandsFactory commandsFactory,
             CommandSessionsHolder commandSessionsHolder,
             ErrorHandlerFactory errorHandler,
+            AuthInterceptor authInterceptor,
             CommandsSessionBotProperties properties) {
 
-        CommandsSessionBot commandsSessionBot = new CommandsSessionBot(commandsFactory, commandSessionsHolder, errorHandler);
+        CommandsSessionBot commandsSessionBot = new CommandsSessionBot(commandsFactory, commandSessionsHolder, authInterceptor, errorHandler);
         commandsSessionBot.setBotUserName(properties.getBotUsername());
         commandsSessionBot.setToken(properties.getToken());
         return commandsSessionBot;
@@ -91,7 +94,21 @@ public class CommandsSessionBotConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "botCommandErrorHandler")
     public BotCommandErrorHandler botCommandErrorHandler(CommandSessionsHolder commandsSession) {
         return new BotCommandErrorHandler(commandsSession);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "botAuthErrorHandler")
+    public BotAuthErrorHandler botAuthErrorHandler() {
+        return new BotAuthErrorHandler();
+    }
+
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AuthInterceptor authInterceptor() {
+        return update -> true;
     }
 }

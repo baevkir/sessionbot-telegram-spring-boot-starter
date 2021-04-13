@@ -1,5 +1,7 @@
 package com.kb.sessionbot.commands;
 
+import com.kb.sessionbot.commands.auth.AuthInterceptor;
+import com.kb.sessionbot.commands.errors.exception.BotAuthException;
 import com.kb.sessionbot.commands.errors.handler.ErrorHandlerFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -9,6 +11,7 @@ import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import reactor.core.publisher.Mono;
 
 import java.util.Collections;
 import java.util.Optional;
@@ -21,25 +24,37 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
     private final CommandsFactory commandsFactory;
     private final CommandSessionsHolder commandSessionsHolder;
     private final ErrorHandlerFactory errorHandler;
+    private final AuthInterceptor authInterceptor;
+
     public CommandsSessionBot(
             CommandsFactory commandsFactory,
             CommandSessionsHolder commandSessionsHolder,
+            AuthInterceptor authInterceptor,
             ErrorHandlerFactory errorHandler) {
         this.commandsFactory = commandsFactory;
         this.commandSessionsHolder = commandSessionsHolder;
         this.errorHandler = errorHandler;
+        this.authInterceptor = authInterceptor;
     }
 
     @Override
     public void onUpdateReceived(Update update) {
-        Optional<CommandRequest> commandRequest = getCommandRequest(update);
-
-        if (commandRequest.isEmpty()) {
-            executeHelp(update);
-            return;
-        }
-
-        commandsFactory.getCommand(commandRequest.get().getCommand()).process(commandRequest.get()).subscribe(
+        Mono.defer(() -> {
+            var commandRequest = getCommandRequest(update);
+            if (commandRequest.isEmpty()) {
+                return commandsFactory.getHelpCommand().process(
+                        CommandRequest.builder()
+                                .commandMessage(update.getMessage())
+                                .update(update)
+                                .arguments(Collections.emptyList())
+                                .build()
+                );
+            }
+            if (!authInterceptor.intercept(update)) {
+                throw new BotAuthException(commandRequest.get().getChatId(), "User is unauthorized to use bot.");
+            }
+            return commandsFactory.getCommand(commandRequest.get().getCommand()).process(commandRequest.get());
+        }).subscribe(
                 this::executeMessage,
                 error -> errorHandler.handle(error).subscribe(this::executeMessage)
         );
@@ -82,15 +97,6 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
                             .build());
         }
         return Optional.empty();
-    }
-
-    private void executeHelp(Update update) {
-        CommandRequest commandRequest = CommandRequest.builder()
-                .commandMessage(update.getMessage())
-                .update(update)
-                .arguments(Collections.emptyList())
-                .build();
-        commandsFactory.getHelpCommand().process(commandRequest).subscribe(this::executeMessage);
     }
 
     private void executeMessage(PartialBotApiMethod<?> message) {

@@ -5,6 +5,7 @@ import com.kb.sessionbot.commands.errors.exception.BotCommandException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import reactor.core.publisher.Mono;
 
@@ -19,7 +20,7 @@ public class BotCommandErrorHandler implements ErrorHandler<BotCommandException>
     }
 
     @Override
-    public Mono<? extends BotApiMethod<?>> handle(BotCommandException exception) {
+    public Mono<? extends PartialBotApiMethod<?>> handle(BotCommandException exception) {
         String botMessage = Optional.ofNullable(ExceptionUtils.getRootCause(exception).getMessage())
                 .orElse("Error during chat bot command. Please try again letter.");
         Long chatId = exception.getCommandRequest().getCommandMessage().getChatId();

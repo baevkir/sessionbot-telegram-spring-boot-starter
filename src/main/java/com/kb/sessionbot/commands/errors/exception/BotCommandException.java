@@ -4,7 +4,7 @@ import com.kb.sessionbot.commands.CommandRequest;
 import lombok.Getter;
 
 @Getter
-public class BotCommandException extends RuntimeException{
+public class BotCommandException extends RuntimeException {
     private CommandRequest commandRequest;
 
     public BotCommandException(CommandRequest commandRequest, Throwable cause) {

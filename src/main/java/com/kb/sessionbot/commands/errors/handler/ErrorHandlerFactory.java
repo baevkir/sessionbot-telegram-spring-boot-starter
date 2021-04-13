@@ -3,6 +3,7 @@ package com.kb.sessionbot.commands.errors.handler;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
@@ -22,8 +23,7 @@ public class ErrorHandlerFactory {
         this.errorHandlers = errorHandlers;
     }
 
-    @SuppressWarnings("unchecked")
-    public Mono<? extends BotApiMethod<?>> handle(Throwable exception) {
+    public Mono<? extends PartialBotApiMethod<?>> handle(Throwable exception) {
         for (Throwable currentError : Lists.reverse(getThrowableList(exception))) {
             ErrorHandler<Throwable> errorHandler = errorHandlerMap.get(currentError.getClass());
             if (errorHandler != null) {
@@ -38,7 +38,7 @@ public class ErrorHandlerFactory {
     @SuppressWarnings("unchecked")
     public void init() {
         errorHandlers.forEach(errorHandler -> {
-            Class type = ((Class) ((ParameterizedType) errorHandler.getClass().getGenericInterfaces()[0]).getActualTypeArguments()[0]);
+            Class<Throwable> type = ((Class<Throwable>) ((ParameterizedType) errorHandler.getClass().getGenericInterfaces()[0]).getActualTypeArguments()[0]);
             errorHandlerMap.put(type, (ErrorHandler<Throwable>) errorHandler);
         });
     }

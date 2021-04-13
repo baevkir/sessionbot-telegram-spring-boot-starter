@@ -8,6 +8,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.util.List;
+import java.util.Optional;
 
 @Getter
 @Builder
@@ -24,5 +25,12 @@ public class CommandRequest {
                 .commandMessage(cashValue.getCommandMessage())
                 .command(cashValue.getCommand())
                 .arguments(cashValue.getArguments());
+    }
+
+    public String getChatId() {
+        return Optional.ofNullable(commandMessage)
+                .map(Message::getChatId)
+                .map(String::valueOf)
+                .orElse(null);
     }
 }
