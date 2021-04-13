@@ -54,10 +54,9 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
                 throw new BotAuthException(commandRequest.get(), "User is unauthorized to use bot.");
             }
             return commandsFactory.getCommand(commandRequest.get().getCommand()).process(commandRequest.get());
-        }).subscribe(
-                this::executeMessage,
-                error -> errorHandler.handle(error).subscribe(this::executeMessage)
-        );
+        })
+        .onErrorResume(errorHandler::handle)
+        .subscribe(this::executeMessage);
     }
 
     @Override
