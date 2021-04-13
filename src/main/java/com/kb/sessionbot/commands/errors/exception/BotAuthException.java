@@ -1,13 +1,14 @@
 package com.kb.sessionbot.commands.errors.exception;
 
+import com.kb.sessionbot.commands.CommandRequest;
 import lombok.Getter;
-import org.telegram.telegrambots.meta.api.objects.Update;
 
 @Getter
 public class BotAuthException extends RuntimeException {
-    private String chatId;
-    public BotAuthException(String chatId, String message) {
+    private final CommandRequest request;
+
+    public BotAuthException(CommandRequest request, String message) {
         super(message);
-        this.chatId = chatId;
+        this.request = request;
     }
 }

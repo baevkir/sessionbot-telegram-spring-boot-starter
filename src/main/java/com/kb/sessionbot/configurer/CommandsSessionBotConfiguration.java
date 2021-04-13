@@ -109,6 +109,6 @@ public class CommandsSessionBotConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public AuthInterceptor authInterceptor() {
-        return update -> true;
+        return request -> true;
     }
 }

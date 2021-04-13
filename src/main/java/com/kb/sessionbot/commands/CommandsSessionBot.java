@@ -50,8 +50,8 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
                                 .build()
                 );
             }
-            if (!authInterceptor.intercept(update)) {
-                throw new BotAuthException(commandRequest.get().getChatId(), "User is unauthorized to use bot.");
+            if (!authInterceptor.intercept(commandRequest.get())) {
+                throw new BotAuthException(commandRequest.get(), "User is unauthorized to use bot.");
             }
             return commandsFactory.getCommand(commandRequest.get().getCommand()).process(commandRequest.get());
         }).subscribe(

@@ -20,7 +20,7 @@ public class BotAuthErrorHandler implements ErrorHandler<BotAuthException> {
         return Mono.fromSupplier(() ->
                 SendMessage
                         .builder()
-                        .chatId(exception.getChatId())
+                        .chatId(exception.getRequest().getChatId())
                         .text(exception.getMessage())
                         .build()
         );
