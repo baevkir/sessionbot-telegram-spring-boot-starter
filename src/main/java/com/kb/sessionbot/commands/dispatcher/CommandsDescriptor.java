@@ -20,6 +20,7 @@ import org.springframework.util.ReflectionUtils;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.User;
 import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Method;
@@ -73,6 +74,9 @@ public class CommandsDescriptor {
                     continue;
                 } else if (Update.class.equals(parameter.getType()) && parameter.getName().equals("update")) {
                     args.add(commandRequest.getUpdate());
+                    continue;
+                } else if (User.class.equals(parameter.getType()) && parameter.getName().equals("from")) {
+                    args.add(commandRequest.getContext().getCommandMessage().getFrom());
                     continue;
                 }
 
