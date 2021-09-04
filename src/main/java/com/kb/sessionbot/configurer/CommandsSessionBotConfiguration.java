@@ -39,28 +39,23 @@ public class CommandsSessionBotConfiguration {
     @Bean
     public CommandsSessionBot bot(
             CommandsFactory commandsFactory,
-            CommandSessionsHolder commandSessionsHolder,
             ErrorHandlerFactory errorHandler,
             AuthInterceptor authInterceptor,
             CommandsSessionBotProperties properties) {
 
-        CommandsSessionBot commandsSessionBot = new CommandsSessionBot(commandsFactory, commandSessionsHolder, authInterceptor, errorHandler);
+        CommandsSessionBot commandsSessionBot = new CommandsSessionBot(commandsFactory, authInterceptor, errorHandler);
         commandsSessionBot.setBotUserName(properties.getBotUsername());
         commandsSessionBot.setToken(properties.getToken());
         return commandsSessionBot;
     }
 
-    @Bean
-    public CommandSessionsHolder commandsSessionCash() {
-        return new CommandSessionsHolder();
-    }
 
     @Bean
-    public List<IBotCommand> reactiveBotCommand(ApplicationContext applicationContext, CommandSessionsHolder commandSessionsHolder) {
+    public List<IBotCommand> reactiveBotCommand(ApplicationContext applicationContext) {
         return applicationContext.getBeansWithAnnotation(BotCommand.class)
                 .values()
                 .stream()
-                .map(handler -> new DispatcherBotCommand(handler, commandSessionsHolder, applicationContext))
+                .map(handler -> new DispatcherBotCommand(handler, applicationContext))
                 .collect(Collectors.toList());
     }
 
@@ -95,8 +90,8 @@ public class CommandsSessionBotConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(name = "botCommandErrorHandler")
-    public BotCommandErrorHandler botCommandErrorHandler(CommandSessionsHolder commandsSession) {
-        return new BotCommandErrorHandler(commandsSession);
+    public BotCommandErrorHandler botCommandErrorHandler() {
+        return new BotCommandErrorHandler();
     }
 
     @Bean

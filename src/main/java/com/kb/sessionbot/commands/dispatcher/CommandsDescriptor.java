@@ -60,7 +60,7 @@ public class CommandsDescriptor {
                     return invocationResult;
                 }
                 throw new RuntimeException(
-                        "Cannot find command method for " + commandRequest.getCommand() + " with arguments " + commandRequest.getArguments()
+                        "Cannot find command method for " + commandRequest.getContext().getCommand() + " with arguments " + commandRequest.getContext().getAnswers()
                 );
             }
             var args = new ArrayList<>();
@@ -69,7 +69,7 @@ public class CommandsDescriptor {
                     continue;
                 }
                 if (Message.class.equals(parameter.getType()) && parameter.getName().equals("command")) {
-                    args.add(commandRequest.getCommandMessage());
+                    args.add(commandRequest.getContext().getCommandMessage());
                     continue;
                 } else if (Update.class.equals(parameter.getType()) && parameter.getName().equals("update")) {
                     args.add(commandRequest.getUpdate());
@@ -116,10 +116,10 @@ public class CommandsDescriptor {
     private Object getArgument(CommandRequest commandRequest, java.lang.reflect.Parameter parameter) {
         Parameter param = parameter.getAnnotation(Parameter.class);
         int index = param.index();
-        if (index < commandRequest.getArguments().size()) {
-            return mapper.convertValue(commandRequest.getArguments().get(index), parameter.getType());
+        if (index < commandRequest.getContext().getAnswers().size()) {
+            return mapper.convertValue(commandRequest.getContext().getAnswers().get(index), parameter.getType());
         }
-        if (index == commandRequest.getArguments().size() && commandRequest.getPendingArgument() != null) {
+        if (index == commandRequest.getContext().getAnswers().size() && commandRequest.getPendingArgument() != null) {
             return mapper.convertValue(commandRequest.getPendingArgument(), parameter.getType());
         }
         return null;
@@ -147,7 +147,7 @@ public class CommandsDescriptor {
         if (invokerMethods.keySet().size() == 1) {
             return Iterables.getFirst(invokerMethods.values(), null);
         }
-        Object argument = Iterables.getFirst(commandRequest.getArguments(), commandRequest.getPendingArgument());
+        Object argument = Iterables.getFirst(commandRequest.getContext().getAnswers().values(), commandRequest.getPendingArgument());
         Method defaultMethod = invokerMethods.get("");
 
         if (argument == null) {
@@ -157,7 +157,7 @@ public class CommandsDescriptor {
             invocationResult.invocationArgument = getDefaultRenderer().render(
                     ParameterRequest.builder()
                             .commandRequest(commandRequest)
-                            .text(String.format("Пожалуйста выберите опцию для команды '%s'", commandRequest.getCommand()))
+                            .text(String.format("Пожалуйста выберите опцию для команды '%s'", commandRequest.getContext().getCommand()))
                             .options(invokerMethods.keySet())
                             .build()
             );
@@ -171,7 +171,7 @@ public class CommandsDescriptor {
             invocationResult.invocationArgument = getDefaultRenderer().render(
                     ParameterRequest.builder()
                             .commandRequest(commandRequest)
-                            .text(String.format("Опция '%s' не поддерживается для команды %s", argument, commandRequest.getCommand()))
+                            .text(String.format("Опция '%s' не поддерживается для команды %s", argument, commandRequest.getContext().getCommand()))
                             .options(invokerMethods.keySet())
                             .build()
             );

@@ -44,7 +44,7 @@ public class HelpCommand implements IBotCommand {
             botCommands.forEach(botCommand -> helpMessageBuilder.append(getCommandPresenter(botCommand)).append("\n\n"));
 
             SendMessage helpMessage = new SendMessage();
-            helpMessage.setChatId(String.valueOf(commandRequest.getCommandMessage().getChat().getId()));
+            helpMessage.setChatId(commandRequest.getContext().getChatId());
             helpMessage.enableHtml(true);
             helpMessage.setText(helpMessageBuilder.toString());
             return helpMessage;

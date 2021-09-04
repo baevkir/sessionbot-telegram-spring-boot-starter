@@ -15,7 +15,7 @@ import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 public class DefaultParameterRenderer implements ParameterRenderer{
     @Override
     public Mono<? extends PartialBotApiMethod<?>> render(ParameterRequest parameterRequest) {
-        Long chatId = parameterRequest.getCommandRequest().getCommandMessage().getChatId();
+        Long chatId = parameterRequest.getCommandRequest().getContext().getCommandMessage().getChatId();
         return Mono.fromSupplier(() -> {
             SendMessage sendMessage = new SendMessage();
             sendMessage.setChatId(String.valueOf(chatId));

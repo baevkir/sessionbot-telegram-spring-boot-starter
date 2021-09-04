@@ -1,31 +1,31 @@
 package com.kb.sessionbot.commands.dispatcher;
 
 import com.kb.sessionbot.commands.CommandRequest;
-import com.kb.sessionbot.commands.CommandSessionsHolder;
 import com.kb.sessionbot.commands.IBotCommand;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import reactor.core.publisher.Mono;
 
 @Slf4j
 public class DispatcherBotCommand implements IBotCommand {
 
-    private final CommandSessionsHolder commandSessionsHolder;
     private final CommandsDescriptor commandsDescriptor;
 
-    public DispatcherBotCommand(Object handler, CommandSessionsHolder commandSessionsHolder, ApplicationContext applicationContext) {
+    public DispatcherBotCommand(Object handler, ApplicationContext applicationContext) {
         this.commandsDescriptor = new CommandsDescriptor(handler, applicationContext);
-        this.commandSessionsHolder = commandSessionsHolder;
     }
 
     public Mono<? extends PartialBotApiMethod<?>> process(CommandRequest commandRequest) {
         var invocationResult = commandsDescriptor.invoke(commandRequest);
-        commandSessionsHolder.updateSessionArguments(
-                commandRequest.getCommandMessage().getFrom().getId(),
-                commandRequest.getCommandMessage().getChatId(),
-                invocationResult.getCommandArguments()
-        );
+        Message message ;
+        if (commandRequest.getUpdate().hasCallbackQuery()) {
+            message = commandRequest.getUpdate().getCallbackQuery().getMessage();
+        } else {
+            message = commandRequest.getUpdate().getMessage();
+        }
+        commandRequest.getContext().addAnswer(message, commandRequest.getPendingArgument());
         if (invocationResult.hasErrors()) {
             return Mono.error(invocationResult.getInvocationError());
         }

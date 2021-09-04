@@ -14,23 +14,8 @@ import java.util.Optional;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class CommandRequest {
-    private final Message commandMessage;
+    private final CommandContext context;
     private final Update update;
-    private final String command;
-    private final List<Object> arguments;
     private final Object pendingArgument;
 
-    public static CommandRequest.CommandRequestBuilder toRequest(CommandSessionsHolder.SessionValue cashValue) {
-        return CommandRequest.builder()
-                .commandMessage(cashValue.getCommandMessage())
-                .command(cashValue.getCommand())
-                .arguments(cashValue.getArguments());
-    }
-
-    public String getChatId() {
-        return Optional.ofNullable(commandMessage)
-                .map(Message::getChatId)
-                .map(String::valueOf)
-                .orElse(null);
-    }
 }
