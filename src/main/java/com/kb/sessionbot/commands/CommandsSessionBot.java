@@ -4,6 +4,7 @@ import com.kb.sessionbot.commands.auth.AuthInterceptor;
 import com.kb.sessionbot.commands.errors.exception.BotAuthException;
 import com.kb.sessionbot.commands.errors.handler.ErrorHandlerFactory;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.Assert;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
@@ -12,10 +13,12 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 import javax.annotation.PostConstruct;
+import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -31,9 +34,9 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
     private final Sinks.Many<Update> commandsSinks = Sinks.many().unicast().onBackpressureBuffer();
 
     public CommandsSessionBot(
-            CommandsFactory commandsFactory,
-            AuthInterceptor authInterceptor,
-            ErrorHandlerFactory errorHandler) {
+        CommandsFactory commandsFactory,
+        AuthInterceptor authInterceptor,
+        ErrorHandlerFactory errorHandler) {
         this.commandsFactory = commandsFactory;
         this.errorHandler = errorHandler;
         this.authInterceptor = authInterceptor;
@@ -57,36 +60,41 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
     @PostConstruct
     public void init() {
         commandsSinks.asFlux()
-                .groupBy(this::getChatId)
-                .flatMap(updates ->
-                        updates.windowUntil(update -> update.hasMessage() && update.getMessage().isCommand()).concatMap(this::handleUpdates)
-                )
-                .onErrorResume(errorHandler::handle)
-                .subscribe(this::executeMessage);
+            .groupBy(this::getChatId)
+            .flatMap(this::handleUpdates)
+            .onErrorResume(errorHandler::handle)
+            .subscribe(this::executeMessage);
     }
 
     private Flux<PartialBotApiMethod<?>> handleUpdates(Flux<Update> updates) {
-        AtomicReference<CommandContext> commandContextHolder = new AtomicReference<>();
-        return updates.flatMap(update -> {
-            if (update.hasMessage() && update.getMessage().isCommand()) {
-                commandContextHolder.set(
-                        CommandContext.builder().commandMessage(update.getMessage()).build()
-                );
-            }
-            var commandRequest = getCommandRequest(update, commandContextHolder.get());
-            if (commandRequest.isEmpty()) {
-                return commandsFactory.getHelpCommand().process(
+        Assert.notNull(updates, "Updates is null.");
+        return updates
+            .scanWith(() -> CommandContext.builder().build(), (context, update) -> {
+                if (update.hasMessage() && update.getMessage().isCommand()) {
+                    return CommandContext.builder()
+                        .commandMessage(update.getMessage())
+                        .updates(new ArrayDeque<>(Collections.singleton(update)))
+                        .build();
+                }
+                return context.addUpdate(update);
+            })
+            .skip(1)
+            .flatMap(context -> {
+                var commandRequest = getCommandRequest(context);
+                var update = context.getCurrentUpdate();
+                if (commandRequest.isEmpty()) {
+                    return commandsFactory.getHelpCommand().process(
                         CommandRequest.builder()
-                                .context(CommandContext.builder().commandMessage(update.getMessage()).build())
-                                .update(update)
-                                .build()
-                );
-            }
-            if (!authInterceptor.intercept(commandRequest.get())) {
-                throw new BotAuthException(commandRequest.get(), "User is unauthorized to use bot.");
-            }
-            return commandsFactory.getCommand(commandContextHolder.get().getCommand()).process(commandRequest.get());
-        });
+                            .context(CommandContext.builder().commandMessage(update.getMessage()).build())
+                            .update(update)
+                            .build()
+                    );
+                }
+                if (!authInterceptor.intercept(commandRequest.get())) {
+                    return Flux.error(new BotAuthException(commandRequest.get(), "User is unauthorized to use bot."));
+                }
+                return commandsFactory.getCommand(context.getCommand()).process(commandRequest.get());
+            });
     }
 
     private Long getChatId(Update update) {
@@ -103,22 +111,23 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
         return message.getChatId();
     }
 
-    private Optional<CommandRequest> getCommandRequest(Update update, CommandContext context) {
-        if (context == null) {
+    private Optional<CommandRequest> getCommandRequest(CommandContext context) {
+        if (context == null || context.isEmpty()) {
             return Optional.empty();
         }
+        var update = context.getCurrentUpdate();
         if (update.hasMessage() && update.getMessage().isCommand()) {
             return Optional.of(
-                    CommandRequest.builder().context(context).update(update).build()
+                CommandRequest.builder().context(context).update(update).build()
             );
         }
         if (update.hasMessage()) {
             return Optional.of(
-                    CommandRequest.builder()
-                            .context(context)
-                            .update(update)
-                            .pendingArgument(update.getMessage().getText())
-                            .build()
+                CommandRequest.builder()
+                    .context(context)
+                    .update(update)
+                    .pendingArgument(update.getMessage().getText())
+                    .build()
             );
 
 
@@ -126,11 +135,11 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
         if (update.hasCallbackQuery()) {
             CallbackQuery callbackQuery = update.getCallbackQuery();
             return Optional.of(
-                    CommandRequest.builder()
-                            .context(context)
-                            .update(update)
-                            .pendingArgument(callbackQuery.getData())
-                            .build()
+                CommandRequest.builder()
+                    .context(context)
+                    .update(update)
+                    .pendingArgument(callbackQuery.getData())
+                    .build()
             );
         }
         return Optional.empty();
