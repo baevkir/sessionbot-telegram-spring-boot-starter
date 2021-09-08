@@ -104,7 +104,7 @@ public class CommandsDescriptor {
                     Parameter param = parameter.getAnnotation(Parameter.class);
                     invocationResult.invocationArgument = getRenderer(param).render(
                         ParameterRequest.builder()
-                            .text(String.format("Пожалуйста укажите поле '%s'.", param.name()))
+                            .text(String.format("Пожалуйста укажите поле '%s'.", parameter.getName()))
                             .commandRequest(commandRequest)
                             .options(Sets.newHashSet(param.options()))
                             .build()

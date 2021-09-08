@@ -11,7 +11,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Parameter {
     int index();
-    String name();
     String rendering() default "defaultParameterRenderer";
     Class<? extends ParameterRenderer> renderingType() default ParameterRenderer.class;
     String[] options() default {};
