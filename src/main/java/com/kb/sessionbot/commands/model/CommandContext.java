@@ -1,28 +1,52 @@
 package com.kb.sessionbot.commands.model;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.ToString;
+import lombok.*;
+import org.springframework.util.Assert;
 import org.telegram.telegrambots.extensions.bots.commandbot.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @ToString
 @Getter
-@Builder
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class CommandContext {
-    private final Message commandMessage;
-    private Deque<UpdateWrapper> updates;
-    private final Map<Integer, Object> answers = Collections.synchronizedMap(new LinkedHashMap<>());
+    public static final String COMMAND_PARAMETER_SEPARATOR = "\\?";
+    public static final String PARAMETER_SEPARATOR = "&";
+    private Message commandMessage;
+    private String command;
+    private final Deque<UpdateWrapper> updates = new ArrayDeque<>();
+    private final List<Object> answers = new CopyOnWriteArrayList<>();
 
-    public CommandContext addAnswer(Message message, Object answer) {
-        answers.put(message.getMessageId(), answer);
+    public static CommandContext create(UpdateWrapper commandUpdate) {
+        Assert.isTrue(commandUpdate.isCommand(), "Context should be created only for command.");
+        CommandContext context = new CommandContext();
+        context.commandMessage = commandUpdate.getMessage();
+
+        String commandText = context.commandMessage.getText().substring(1);
+        String[] commandSplit = commandText.split(COMMAND_PARAMETER_SEPARATOR);
+
+        context.command = commandSplit[0];
+        context.updates.add(commandUpdate);
+
+        if (commandSplit.length > 1) {
+            Arrays.asList(commandSplit[1].split(PARAMETER_SEPARATOR)).forEach(context::addAnswer);
+        }
+        return context;
+    }
+
+    public static CommandContext empty() {
+        return new CommandContext();
+    }
+
+    public CommandContext addAnswer(Object answer) {
+        answers.add(answer);
         return this;
     }
 
     public CommandContext addUpdate(UpdateWrapper update) {
+        Assert.isTrue(!update.isCommand(), "Command should create new context");
         updates.add(update);
         return this;
     }
@@ -31,11 +55,6 @@ public class CommandContext {
         return commandMessage == null;
     }
 
-    public String getCommand() {
-        String commandText = commandMessage.getText().substring(1);
-        String[] commandSplit = commandText.split(BotCommand.COMMAND_PARAMETER_SEPARATOR_REGEXP);
-        return commandSplit[0];
-    }
 
     public String getChatId() {
         return Optional.ofNullable(commandMessage)
