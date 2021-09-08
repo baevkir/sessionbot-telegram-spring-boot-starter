@@ -1,6 +1,6 @@
 package com.kb.sessionbot.commands.errors.exception;
 
-import com.kb.sessionbot.commands.CommandRequest;
+import com.kb.sessionbot.commands.model.CommandRequest;
 import lombok.Getter;
 
 @Getter

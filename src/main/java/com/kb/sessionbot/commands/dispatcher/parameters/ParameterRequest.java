@@ -1,6 +1,6 @@
 package com.kb.sessionbot.commands.dispatcher.parameters;
 
-import com.kb.sessionbot.commands.CommandRequest;
+import com.kb.sessionbot.commands.model.CommandRequest;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -1,5 +1,6 @@
 package com.kb.sessionbot.commands;
 
+import com.kb.sessionbot.commands.model.CommandRequest;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import reactor.core.publisher.Mono;
 
@@ -17,6 +18,13 @@ public interface IBotCommand {
      * @return the description as String
      */
     String getDescription();
+
+    /**
+     * @return the true if bot command should not show in help
+     */
+    default boolean hidden() {
+        return false;
+    }
 
     /**
      * Process the message

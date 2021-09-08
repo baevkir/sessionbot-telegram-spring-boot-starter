@@ -4,13 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import com.kb.sessionbot.commands.CommandRequest;
+import com.kb.sessionbot.commands.model.CommandRequest;
 import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
 import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRequest;
 import com.kb.sessionbot.commands.errors.exception.BotCommandException;
 import com.kb.sessionbot.commands.dispatcher.annotations.BotCommand;
 import com.kb.sessionbot.commands.dispatcher.annotations.CommandMethod;
 import com.kb.sessionbot.commands.dispatcher.annotations.Parameter;
+import com.kb.sessionbot.commands.model.UpdateWrapper;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -51,6 +52,10 @@ public class CommandsDescriptor {
         return command.getClass().getAnnotation(BotCommand.class).description();
     }
 
+    public boolean isHidden() {
+        return command.getClass().getAnnotation(BotCommand.class).hidden();
+    }
+
     public InvocationResult invoke(CommandRequest commandRequest) {
         var invocationResult = new InvocationResult();
 
@@ -72,11 +77,17 @@ public class CommandsDescriptor {
                 if (Message.class.equals(parameter.getType()) && parameter.getName().equals("command")) {
                     args.add(commandRequest.getContext().getCommandMessage());
                     continue;
-                } else if (Update.class.equals(parameter.getType()) && parameter.getName().equals("update")) {
+                } else if (UpdateWrapper.class.equals(parameter.getType()) && parameter.getName().equals("update")) {
                     args.add(commandRequest.getUpdate());
+                    continue;
+                }else if (Update.class.equals(parameter.getType()) && parameter.getName().equals("update")) {
+                    args.add(commandRequest.getUpdate().getUpdate());
                     continue;
                 } else if (User.class.equals(parameter.getType()) && parameter.getName().equals("from")) {
                     args.add(commandRequest.getContext().getCommandMessage().getFrom());
+                    continue;
+                } if (CommandRequest.class.equals(parameter.getType())) {
+                    args.add(commandRequest);
                     continue;
                 }
 

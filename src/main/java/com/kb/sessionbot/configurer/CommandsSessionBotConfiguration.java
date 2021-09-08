@@ -42,11 +42,7 @@ public class CommandsSessionBotConfiguration {
             ErrorHandlerFactory errorHandler,
             AuthInterceptor authInterceptor,
             CommandsSessionBotProperties properties) {
-
-        CommandsSessionBot commandsSessionBot = new CommandsSessionBot(commandsFactory, authInterceptor, errorHandler);
-        commandsSessionBot.setBotUserName(properties.getBotUsername());
-        commandsSessionBot.setToken(properties.getToken());
-        return commandsSessionBot;
+        return new CommandsSessionBot(commandsFactory, authInterceptor, errorHandler, properties);
     }
 
 

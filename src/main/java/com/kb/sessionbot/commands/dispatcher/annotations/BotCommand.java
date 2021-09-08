@@ -11,4 +11,5 @@ import java.lang.annotation.*;
 public @interface BotCommand {
     String value();
     String description() default "";
+    boolean hidden() default false;
 }

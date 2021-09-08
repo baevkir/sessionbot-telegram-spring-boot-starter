@@ -1,6 +1,6 @@
 package com.kb.sessionbot.commands.dispatcher;
 
-import com.kb.sessionbot.commands.CommandRequest;
+import com.kb.sessionbot.commands.model.CommandRequest;
 import com.kb.sessionbot.commands.IBotCommand;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
@@ -19,12 +19,7 @@ public class DispatcherBotCommand implements IBotCommand {
 
     public Mono<? extends PartialBotApiMethod<?>> process(CommandRequest commandRequest) {
         var invocationResult = commandsDescriptor.invoke(commandRequest);
-        Message message ;
-        if (commandRequest.getUpdate().hasCallbackQuery()) {
-            message = commandRequest.getUpdate().getCallbackQuery().getMessage();
-        } else {
-            message = commandRequest.getUpdate().getMessage();
-        }
+        Message message = commandRequest.getUpdate().getMessage();
         commandRequest.getContext().addAnswer(message, commandRequest.getPendingArgument());
         if (invocationResult.hasErrors()) {
             return Mono.error(invocationResult.getInvocationError());
@@ -43,5 +38,10 @@ public class DispatcherBotCommand implements IBotCommand {
     @Override
     public String getDescription() {
         return commandsDescriptor.getCommandDescription();
+    }
+
+    @Override
+    public boolean hidden() {
+        return commandsDescriptor.isHidden();
     }
 }
