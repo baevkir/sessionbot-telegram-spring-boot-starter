@@ -155,7 +155,7 @@ public class CommandsDescriptor {
         return Arrays.stream(command.getClass().getMethods())
                 .filter(method -> method.isAnnotationPresent(CommandMethod.class))
                 .peek(method -> log.debug("Find OperationMethod {} for class {}.", method, command.getClass()))
-                .collect(Collectors.toMap(method -> method.getAnnotation(CommandMethod.class).name(), Function.identity()));
+                .collect(Collectors.toMap(method -> method.getAnnotation(CommandMethod.class).arguments(), Function.identity()));
     }
 
     private Method findInvokerMethod(CommandRequest commandRequest, InvocationResult invocationResult) {
