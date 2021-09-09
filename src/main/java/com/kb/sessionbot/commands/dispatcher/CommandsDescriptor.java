@@ -30,7 +30,8 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static com.kb.sessionbot.commands.model.CommandContext.PARAMETER_SEPARATOR;
+import static com.kb.sessionbot.commands.CommandParser.PARAMETER_SEPARATOR;
+
 
 @Slf4j
 public class CommandsDescriptor {
@@ -104,9 +105,9 @@ public class CommandsDescriptor {
                     Parameter param = parameter.getAnnotation(Parameter.class);
                     invocationResult.invocationArgument = getRenderer(param).render(
                         ParameterRequest.builder()
-                            .text(String.format("Пожалуйста укажите поле '%s'.", parameter.getName()))
+                            .text(String.format("Пожалуйста укажите поле '%s'.", param.name().isEmpty()? parameter.getName() : param.name()))
                             .commandRequest(commandRequest)
-                            .options(Sets.newHashSet(param.options()))
+                            .options(Sets.newHashSet(param.rendering().options()))
                             .build()
                     );
                     return invocationResult;
@@ -147,10 +148,10 @@ public class CommandsDescriptor {
     }
 
     private ParameterRenderer getRenderer(Parameter parameter) {
-        if (parameter.renderingType() != ParameterRenderer.class) {
-            return applicationContext.getBean(parameter.renderingType());
+        if (parameter.rendering().type() != ParameterRenderer.class) {
+            return applicationContext.getBean(parameter.rendering().type());
         }
-        return applicationContext.getBean(parameter.rendering(), ParameterRenderer.class);
+        return applicationContext.getBean(parameter.rendering().name(), ParameterRenderer.class);
     }
 
     private Map<String, Method> parseInvokerMethods(Object command) {
