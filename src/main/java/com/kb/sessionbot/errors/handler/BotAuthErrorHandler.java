@@ -1,6 +1,6 @@
-package com.kb.sessionbot.commands.errors.handler;
+package com.kb.sessionbot.errors.handler;
 
-import com.kb.sessionbot.commands.errors.exception.BotAuthException;
+import com.kb.sessionbot.errors.exception.BotAuthException;
 import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -15,7 +15,7 @@ public class BotAuthErrorHandler implements ErrorHandler<BotAuthException> {
         return Mono.fromSupplier(() ->
                 SendMessage
                         .builder()
-                        .chatId(exception.getRequest().getContext().getChatId())
+                        .chatId(exception.getContext().getChatId())
                         .text(exception.getMessage())
                         .build()
         );

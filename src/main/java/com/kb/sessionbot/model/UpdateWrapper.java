@@ -1,13 +1,18 @@
-package com.kb.sessionbot.commands.model;
+package com.kb.sessionbot.model;
 
-import lombok.*;
+import com.kb.sessionbot.commands.CommandParser;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
+
+import static com.kb.sessionbot.commands.CommandConstants.RENDERING_PARAMETERS_SEPARATOR;
 
 @Slf4j
 @Getter
@@ -40,7 +45,17 @@ public class UpdateWrapper {
         return update.getMessage();
     }
 
-    public Optional<?> getArgument() {
+    public Optional<String> getArgument() {
+       return getText().filter(text -> !text.startsWith(RENDERING_PARAMETERS_SEPARATOR));
+    }
+
+    public List<String> getRenderingParameters() {
+        return getText()
+            .map(text -> CommandParser.create(text).parseRenderingParams())
+            .orElse(Collections.emptyList());
+    }
+
+    private Optional<String> getText() {
         if (update.hasMessage()) {
             return Optional.of(getMessage().getText());
         }

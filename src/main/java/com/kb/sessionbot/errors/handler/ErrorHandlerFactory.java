@@ -1,8 +1,7 @@
-package com.kb.sessionbot.commands.errors.handler;
+package com.kb.sessionbot.errors.handler;
 
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import reactor.core.publisher.Mono;
 

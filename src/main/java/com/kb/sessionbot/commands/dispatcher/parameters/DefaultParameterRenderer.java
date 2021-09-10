@@ -15,18 +15,16 @@ import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 public class DefaultParameterRenderer implements ParameterRenderer{
     @Override
     public Mono<? extends PartialBotApiMethod<?>> render(ParameterRequest parameterRequest) {
-        Long chatId = parameterRequest.getCommandRequest().getContext().getCommandMessage().getChatId();
         return Mono.fromSupplier(() -> {
             SendMessage sendMessage = new SendMessage();
-            sendMessage.setChatId(String.valueOf(chatId));
+            sendMessage.setChatId(parameterRequest.getContext().getChatId());
             sendMessage.setText(parameterRequest.getText());
 
             if (!isEmpty(parameterRequest.getOptions())) {
                 InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
                 List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
                 List<InlineKeyboardButton> rowInline = parameterRequest.getOptions().stream()
-                        .map(option ->
-                                InlineKeyboardButton.builder().text(option).callbackData(option).build())
+                        .map(option -> InlineKeyboardButton.builder().text(option).callbackData(option).build())
                         .collect(Collectors.toList());
 
                 rowsInline.add(rowInline);

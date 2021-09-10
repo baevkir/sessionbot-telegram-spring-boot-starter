@@ -1,7 +1,5 @@
 package com.kb.sessionbot.commands.dispatcher.annotations;
 
-import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

@@ -1,6 +1,6 @@
 package com.kb.sessionbot.commands.dispatcher.parameters;
 
-import com.kb.sessionbot.commands.model.CommandRequest;
+import com.kb.sessionbot.model.CommandContext;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,7 +12,7 @@ import java.util.Set;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ParameterRequest {
-    private final CommandRequest commandRequest;
+    private final CommandContext context;
     private final String text;
     private final Set<String> options;
 }

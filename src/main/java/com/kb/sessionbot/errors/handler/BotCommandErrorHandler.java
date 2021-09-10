@@ -1,6 +1,6 @@
-package com.kb.sessionbot.commands.errors.handler;
+package com.kb.sessionbot.errors.handler;
 
-import com.kb.sessionbot.commands.errors.exception.BotCommandException;
+import com.kb.sessionbot.errors.exception.BotCommandException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
@@ -16,7 +16,7 @@ public class BotCommandErrorHandler implements ErrorHandler<BotCommandException>
     public Mono<? extends PartialBotApiMethod<?>> handle(BotCommandException exception) {
         String botMessage = Optional.ofNullable(ExceptionUtils.getRootCause(exception).getMessage())
                 .orElse("Error during chat bot command. Please try again letter.");
-        Long chatId = exception.getCommandRequest().getContext().getCommandMessage().getChatId();
+        Long chatId = exception.getContext().getCommandMessage().getChatId();
         log.error(botMessage, exception);
         return Mono.fromSupplier(() ->
                 SendMessage

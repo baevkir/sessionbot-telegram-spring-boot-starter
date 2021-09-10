@@ -3,16 +3,15 @@ package com.kb.sessionbot.commands.dispatcher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.kb.sessionbot.commands.model.CommandRequest;
-import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
-import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRequest;
-import com.kb.sessionbot.commands.errors.exception.BotCommandException;
 import com.kb.sessionbot.commands.dispatcher.annotations.BotCommand;
 import com.kb.sessionbot.commands.dispatcher.annotations.CommandMethod;
 import com.kb.sessionbot.commands.dispatcher.annotations.Parameter;
-import com.kb.sessionbot.commands.model.UpdateWrapper;
+import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
+import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRequest;
+import com.kb.sessionbot.errors.exception.BotCommandException;
+import com.kb.sessionbot.model.CommandContext;
+import com.kb.sessionbot.model.UpdateWrapper;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,7 +29,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static com.kb.sessionbot.commands.CommandParser.PARAMETER_SEPARATOR;
+import static com.kb.sessionbot.commands.CommandConstants.PARAMETER_SEPARATOR;
 
 
 @Slf4j
@@ -60,18 +59,17 @@ public class CommandsDescriptor {
         return command.getClass().getAnnotation(BotCommand.class).hidden();
     }
 
-    public InvocationResult invoke(CommandRequest commandRequest) {
+    public InvocationResult invoke(CommandContext context) {
         var invocationResult = new InvocationResult();
 
         try {
-            invocationResult.invocationMethod = findInvokerMethod(commandRequest, invocationResult);
+            invocationResult.invocationMethod = findInvokerMethod(context, invocationResult);
             if (invocationResult.invocationMethod == null) {
                 if (invocationResult.invocationArgument != null) {
                     return invocationResult;
                 }
                 throw new RuntimeException(
-                    "Cannot find command method for " + commandRequest.getContext()
-                        .getCommand() + " with arguments " + commandRequest.getContext().getAnswers()
+                    "Cannot find command method for " + context.getCommand() + " with arguments " + context.getAnswers()
                 );
             }
             var args = new ArrayList<>();
@@ -80,24 +78,24 @@ public class CommandsDescriptor {
                     continue;
                 }
                 if (Message.class.equals(parameter.getType()) && parameter.getName().equals("command")) {
-                    args.add(commandRequest.getContext().getCommandMessage());
+                    args.add(context.getCommandMessage());
                     continue;
                 } else if (UpdateWrapper.class.equals(parameter.getType()) && parameter.getName().equals("update")) {
-                    args.add(commandRequest.getUpdate());
+                    args.add(context.getCurrentUpdate().orElse(null));
                     continue;
                 } else if (Update.class.equals(parameter.getType()) && parameter.getName().equals("update")) {
-                    args.add(commandRequest.getUpdate().getUpdate());
+                    args.add(context.getCurrentUpdate().map(UpdateWrapper::getUpdate).orElse(null));
                     continue;
                 } else if (User.class.equals(parameter.getType()) && parameter.getName().equals("from")) {
-                    args.add(commandRequest.getContext().getCommandMessage().getFrom());
+                    args.add(context.getCommandMessage().getFrom());
                     continue;
                 }
-                if (CommandRequest.class.equals(parameter.getType())) {
-                    args.add(commandRequest);
+                if (CommandContext.class.equals(parameter.getType())) {
+                    args.add(context);
                     continue;
                 }
 
-                Object argument = getArgument(commandRequest, parameter);
+                Object argument = getArgument(context, parameter);
                 if (argument != null) {
                     invocationResult.addArgument(argument);
                     args.add(argument);
@@ -106,7 +104,7 @@ public class CommandsDescriptor {
                     invocationResult.invocationArgument = getRenderer(param).render(
                         ParameterRequest.builder()
                             .text(String.format("Пожалуйста укажите поле '%s'.", param.name().isEmpty()? parameter.getName() : param.name()))
-                            .commandRequest(commandRequest)
+                            .context(context)
                             .options(Sets.newHashSet(param.rendering().options()))
                             .build()
                     );
@@ -125,20 +123,21 @@ public class CommandsDescriptor {
                             );
                         })
                     .flatMap(result -> InvocationResultResolver.of(result).resolve())
-                    .onErrorMap(error -> new BotCommandException(commandRequest, error));
+                    .onErrorMap(error -> new BotCommandException(context, error));
             }
         } catch (Throwable error) {
-            invocationResult.invocationError = new BotCommandException(commandRequest, error);
+            invocationResult.invocationError = new BotCommandException(context, error);
         }
 
         return invocationResult;
     }
 
-    private Object getArgument(CommandRequest commandRequest, java.lang.reflect.Parameter parameter) {
+    private Object getArgument(CommandContext context, java.lang.reflect.Parameter parameter) {
         Parameter param = parameter.getAnnotation(Parameter.class);
         int index = param.index();
-        if (index <= commandRequest.getAllAnswers().size()) {
-            return mapper.convertValue(commandRequest.getContext().getAnswers().get(index), parameter.getType());
+        var answers = context.getAnswers();
+        if (index <= answers.size()) {
+            return mapper.convertValue(answers.get(index), parameter.getType());
         }
         return null;
     }
@@ -161,12 +160,12 @@ public class CommandsDescriptor {
             .collect(Collectors.toMap(method -> method.getAnnotation(CommandMethod.class).arguments(), Function.identity()));
     }
 
-    private Method findInvokerMethod(CommandRequest commandRequest, InvocationResult invocationResult) {
+    private Method findInvokerMethod(CommandContext commandContext, InvocationResult invocationResult) {
         if (invokerMethods.keySet().size() == 1) {
             return Iterables.getFirst(invokerMethods.values(), null);
         }
         Method defaultMethod = invokerMethods.get("");
-        var arguments = commandRequest.getAllAnswers();
+        var arguments = commandContext.getAnswers();
 
         if (arguments.isEmpty()) {
             if (defaultMethod != null) {
@@ -174,8 +173,8 @@ public class CommandsDescriptor {
             }
             invocationResult.invocationArgument = getDefaultRenderer().render(
                 ParameterRequest.builder()
-                    .commandRequest(commandRequest)
-                    .text(String.format("Пожалуйста выберите опцию для команды '%s'", commandRequest.getContext().getCommand()))
+                    .context(commandContext)
+                    .text(String.format("Пожалуйста выберите опцию для команды '%s'", commandContext.getCommand()))
                     .options(invokerMethods.keySet())
                     .build()
             );
@@ -187,8 +186,8 @@ public class CommandsDescriptor {
             }
             invocationResult.invocationArgument = getDefaultRenderer().render(
                 ParameterRequest.builder()
-                    .commandRequest(commandRequest)
-                    .text(String.format("Опция не поддерживается для команды %s", commandRequest.getContext().getCommand()))
+                    .context(commandContext)
+                    .text(String.format("Опция не поддерживается для команды %s", commandContext.getCommand()))
                     .options(invokerMethods.keySet())
                     .build()
             );

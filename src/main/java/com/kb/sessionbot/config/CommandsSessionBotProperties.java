@@ -1,4 +1,4 @@
-package com.kb.sessionbot.configurer;
+package com.kb.sessionbot.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

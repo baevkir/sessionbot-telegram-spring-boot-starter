@@ -1,12 +1,12 @@
-package com.kb.sessionbot.commands;
+package com.kb.sessionbot;
 
-import com.kb.sessionbot.commands.auth.AuthInterceptor;
-import com.kb.sessionbot.commands.errors.exception.BotAuthException;
-import com.kb.sessionbot.commands.errors.handler.ErrorHandlerFactory;
-import com.kb.sessionbot.commands.model.CommandContext;
-import com.kb.sessionbot.commands.model.CommandRequest;
-import com.kb.sessionbot.commands.model.UpdateWrapper;
-import com.kb.sessionbot.configurer.CommandsSessionBotProperties;
+import com.kb.sessionbot.auth.AuthInterceptor;
+import com.kb.sessionbot.commands.CommandsFactory;
+import com.kb.sessionbot.config.CommandsSessionBotProperties;
+import com.kb.sessionbot.errors.exception.BotAuthException;
+import com.kb.sessionbot.errors.handler.ErrorHandlerFactory;
+import com.kb.sessionbot.model.CommandContext;
+import com.kb.sessionbot.model.UpdateWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.Assert;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -18,7 +18,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
 import javax.annotation.PostConstruct;
-import java.util.Optional;
 
 @Slf4j
 public class CommandsSessionBot extends TelegramLongPollingBot {
@@ -35,7 +34,7 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
         AuthInterceptor authInterceptor,
         ErrorHandlerFactory errorHandler,
         CommandsSessionBotProperties properties
-        ) {
+    ) {
         this.commandsFactory = commandsFactory;
         this.errorHandler = errorHandler;
         this.authInterceptor = authInterceptor;
@@ -84,34 +83,14 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
             })
             .skip(1)
             .flatMap(context -> {
-                var commandRequest = getCommandRequest(context);
-                if (commandRequest.isEmpty()) {
-                    return commandsFactory.getHelpCommand().process(
-                        CommandRequest.builder().context(context).build()
-                    );
+                if (context.isEmpty()) {
+                    return commandsFactory.getHelpCommand().process(context);
                 }
-                if (!authInterceptor.intercept(commandRequest.get())) {
-                    return Flux.error(new BotAuthException(commandRequest.get(), "User is unauthorized to use bot."));
+                if (!authInterceptor.intercept(context)) {
+                    return Flux.error(new BotAuthException(context, "User is unauthorized to use bot."));
                 }
-                return commandsFactory.getCommand(context.getCommand()).process(commandRequest.get());
+                return commandsFactory.getCommand(context.getCommand()).process(context);
             });
-    }
-
-    private Optional<CommandRequest> getCommandRequest(CommandContext context) {
-        if (context == null || context.isEmpty()) {
-            return Optional.empty();
-        }
-        var update = context.getCurrentUpdate();
-        if (update.isCommand()) {
-            return Optional.of(CommandRequest.builder().context(context).build());
-        }
-        return update.getArgument()
-            .map(argument ->
-                CommandRequest.builder()
-                    .context(context)
-                    .pendingArgument(argument)
-                    .build()
-            );
     }
 
     private void executeMessage(PartialBotApiMethod<?> message) {

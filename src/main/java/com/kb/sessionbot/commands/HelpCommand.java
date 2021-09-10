@@ -1,7 +1,7 @@
 
 package com.kb.sessionbot.commands;
 
-import com.kb.sessionbot.commands.model.CommandRequest;
+import com.kb.sessionbot.model.CommandContext;
 import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -36,7 +36,7 @@ public class HelpCommand implements IBotCommand {
     }
 
     @Override
-    public Mono<? extends PartialBotApiMethod<?>> process(CommandRequest commandRequest) {
+    public Mono<? extends PartialBotApiMethod<?>> process(CommandContext commandContext) {
         return Mono.fromSupplier(() -> {
             StringBuilder helpMessageBuilder = new StringBuilder("<b>Помощь</b>\n");
             helpMessageBuilder.append("Следующие команды зарегистрированны для бота:\n\n");
@@ -48,7 +48,7 @@ public class HelpCommand implements IBotCommand {
                 .forEach(botCommand -> helpMessageBuilder.append(getCommandPresenter(botCommand)).append("\n\n"));
 
             SendMessage helpMessage = new SendMessage();
-            helpMessage.setChatId(commandRequest.getContext().getChatId());
+            helpMessage.setChatId(commandContext.getChatId());
             helpMessage.enableHtml(true);
             helpMessage.setText(helpMessageBuilder.toString());
             return helpMessage;

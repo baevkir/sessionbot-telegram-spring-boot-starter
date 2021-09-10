@@ -1,6 +1,6 @@
 package com.kb.sessionbot.commands;
 
-import com.kb.sessionbot.commands.model.CommandRequest;
+import com.kb.sessionbot.model.CommandContext;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import reactor.core.publisher.Mono;
 
@@ -29,6 +29,7 @@ public interface IBotCommand {
     /**
      * Process the message
      * @return
+     * @param commandContext
      */
-    Mono<? extends PartialBotApiMethod<?>> process(CommandRequest commandRequest);
+    Mono<? extends PartialBotApiMethod<?>> process(CommandContext commandContext);
 }
