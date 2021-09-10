@@ -69,4 +69,10 @@ class CommandParserTest {
         var command = COMMAND_START + TEST_COMMAND + RENDERING_PARAMETERS_SEPARATOR + TEST_RENDERING_PARAMS;
         assertThat( CommandParser.create(command).parseRenderingParams()).hasSize(1).containsEntry(TEST_RENDERING_PARAMS_KEY, TEST_RENDERING_PARAMS_VALUE);
     }
+
+    @Test
+    void parseRenderingParamsOnlyRenderingParams() {
+        var command = RENDERING_PARAMETERS_SEPARATOR + TEST_RENDERING_PARAMS;
+        assertThat( CommandParser.create(command).parseRenderingParams()).hasSize(1).containsEntry(TEST_RENDERING_PARAMS_KEY, TEST_RENDERING_PARAMS_VALUE);
+    }
 }
