@@ -79,7 +79,7 @@ public class CommandContext {
         return builder.build();
     }
 
-    public List<String> getRenderingParameters() {
+    public Map<String, String> getRenderingParameters() {
         return getCurrentUpdate().orElse(commandUpdate).getRenderingParameters();
     }
 }

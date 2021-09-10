@@ -8,6 +8,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.kb.sessionbot.commands.CommandConstants.*;
 
@@ -27,6 +28,9 @@ public class CommandParser {
     public String parseCommand() {
         Assert.isTrue(text.startsWith(COMMAND_START), () -> "command has wrong format " + text);
         String commandText = text.substring(1);
+        if (commandText.contains(RENDERING_PARAMETERS_SEPARATOR)) {
+            commandText = commandText.substring(0, commandText.indexOf(RENDERING_PARAMETERS_SEPARATOR));
+        }
         String[] commandSplit = commandText.split(COMMAND_PARAMETERS_SEPARATOR);
         return commandSplit[0];
     }
@@ -40,11 +44,13 @@ public class CommandParser {
         return Arrays.asList(paramsSplit[0].split(PARAMETER_SEPARATOR));
     }
 
-    public List<String> parseRenderingParams() {
+    public Map<String, String> parseRenderingParams() {
         var paramsSplit = text.split(RENDERING_PARAMETERS_SEPARATOR);
         if (paramsSplit.length == 1) {
-            return Collections.emptyList();
+            return Collections.emptyMap();
         }
-        return Arrays.asList(paramsSplit[1].split(PARAMETER_SEPARATOR));
+        return Arrays.stream(paramsSplit[1].split(PARAMETER_SEPARATOR))
+            .map(params -> params.split(KEY_VALUE_SEPARATOR))
+            .collect(Collectors.toMap(params -> params[0], params -> params.length > 1 ? params[1] : ""));
     }
 }

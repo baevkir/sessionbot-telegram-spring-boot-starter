@@ -49,10 +49,10 @@ public class UpdateWrapper {
        return getText().filter(text -> !text.startsWith(RENDERING_PARAMETERS_SEPARATOR));
     }
 
-    public List<String> getRenderingParameters() {
+    public Map<String, String> getRenderingParameters() {
         return getText()
             .map(text -> CommandParser.create(text).parseRenderingParams())
-            .orElse(Collections.emptyList());
+            .orElse(Collections.emptyMap());
     }
 
     private Optional<String> getText() {
