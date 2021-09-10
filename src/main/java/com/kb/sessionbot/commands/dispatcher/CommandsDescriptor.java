@@ -16,6 +16,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.reactivestreams.Publisher;
 import org.springframework.context.ApplicationContext;
 import org.springframework.util.ReflectionUtils;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
@@ -122,7 +123,7 @@ public class CommandsDescriptor {
                                 args.toArray()
                             );
                         })
-                    .flatMap(result -> InvocationResultResolver.of(result).resolve())
+                    .flatMapMany(result -> InvocationResultResolver.of(result).resolve())
                     .onErrorMap(error -> new BotCommandException(context, error));
             }
         } catch (Throwable error) {
@@ -211,8 +212,8 @@ public class CommandsDescriptor {
     @Getter
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static class InvocationResult {
-        private Mono<? extends PartialBotApiMethod<?>> invocation;
-        private Mono<? extends PartialBotApiMethod<?>> invocationArgument;
+        private Publisher<? extends PartialBotApiMethod<?>> invocation;
+        private Publisher<? extends PartialBotApiMethod<?>> invocationArgument;
         private Method invocationMethod;
         private final List<Object> commandArguments = new ArrayList<>();
         private Throwable invocationError;

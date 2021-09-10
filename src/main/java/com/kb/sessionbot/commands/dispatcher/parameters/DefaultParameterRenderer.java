@@ -1,5 +1,6 @@
 package com.kb.sessionbot.commands.dispatcher.parameters;
 
+import org.reactivestreams.Publisher;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -14,7 +15,7 @@ import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 
 public class DefaultParameterRenderer implements ParameterRenderer{
     @Override
-    public Mono<? extends PartialBotApiMethod<?>> render(ParameterRequest parameterRequest) {
+    public Publisher<? extends PartialBotApiMethod<?>> render(ParameterRequest parameterRequest) {
         return Mono.fromSupplier(() -> {
             SendMessage sendMessage = new SendMessage();
             sendMessage.setChatId(parameterRequest.getContext().getChatId());

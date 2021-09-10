@@ -1,5 +1,6 @@
 package com.kb.sessionbot.commands.dispatcher.parameters;
 
+import org.reactivestreams.Publisher;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -15,8 +16,7 @@ public class DateParameterRenderer implements ParameterRenderer{
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ISO_DATE;
 
     @Override
-    public Mono<? extends PartialBotApiMethod<?>> render(ParameterRequest parameterRequest) {
-        Long chatId = parameterRequest.getContext().getCommandMessage().getChatId();
+    public Publisher<? extends PartialBotApiMethod<?>> render(ParameterRequest parameterRequest) {
         return Mono.fromSupplier(() -> {
 
             InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
@@ -47,7 +47,7 @@ public class DateParameterRenderer implements ParameterRenderer{
 
             return SendMessage
                     .builder()
-                    .chatId(Long.toString(chatId))
+                    .chatId(parameterRequest.getContext().getChatId())
                     .text(String.format("%s (Формат: %s)", parameterRequest.getText(), currentDate.format(DATE_FORMAT)))
                     .replyMarkup(markupInline)
                     .build();
