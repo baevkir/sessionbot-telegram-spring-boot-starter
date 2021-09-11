@@ -33,7 +33,7 @@ public class CommandParser {
         if (commandText.contains(RENDERING_PARAMETERS_SEPARATOR)) {
             commandText = commandText.substring(0, commandText.indexOf(RENDERING_PARAMETERS_SEPARATOR));
         }
-        String[] commandSplit = commandText.split(COMMAND_PARAMETERS_SEPARATOR);
+        String[] commandSplit = commandText.split(COMMAND_PARAMETERS_SEPARATOR_REGEX);
         return commandSplit[0];
     }
 
@@ -42,7 +42,7 @@ public class CommandParser {
             var paramsSplit = text.split(RENDERING_PARAMETERS_SEPARATOR);
             return Arrays.asList(paramsSplit[0].split(PARAMETER_SEPARATOR));
         }
-        String[] commandSplit = text.split(COMMAND_PARAMETERS_SEPARATOR);
+        String[] commandSplit = text.split(COMMAND_PARAMETERS_SEPARATOR_REGEX);
         if (commandSplit.length == 1) {
             return Collections.emptyList();
         }

@@ -25,7 +25,6 @@ public class CommandContext {
         Assert.isTrue(commandUpdate.isCommand(), "Context should be created only for command.");
         CommandContext context = new CommandContext();
         context.commandUpdate = commandUpdate;
-        context.updates.add(commandUpdate);
 
         CommandParser parser = CommandParser.create(commandUpdate.getText().orElse(""));
         context.command = parser.parseCommand();
@@ -70,6 +69,10 @@ public class CommandContext {
             .or(this::getCurrentUpdate)
             .map(UpdateWrapper::getChatId)
             .orElse(null);
+    }
+
+    public Optional<UpdateWrapper> getInitialUpdate() {
+        return Optional.ofNullable(updates.peekFirst());
     }
 
     public Optional<UpdateWrapper> getCurrentUpdate() {

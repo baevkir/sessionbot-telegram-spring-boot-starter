@@ -17,6 +17,7 @@ import java.util.Optional;
 
 import static com.kb.sessionbot.commands.CommandConstants.COMMAND_START;
 import static com.kb.sessionbot.commands.CommandConstants.RENDERING_PARAMETERS_SEPARATOR;
+import static com.kb.sessionbot.commands.RenderingParamsConstants.REFRESH_CONTEXT;
 
 @Slf4j
 @Getter
@@ -45,12 +46,23 @@ public class UpdateWrapper {
         return update.hasMessage() && update.getMessage().isCommand();
     }
 
+    public boolean needRefreshContext() {
+        return getRenderingParameters().containsKey(REFRESH_CONTEXT);
+    }
+
     public Message getMessage() {
         return update.getMessage();
     }
 
     public Optional<String> getArguments() {
        return getText().filter(text -> !text.startsWith(RENDERING_PARAMETERS_SEPARATOR));
+    }
+
+    public Optional<Message> getCallbackMessage() {
+        return Optional.of(update)
+            .filter(Update::hasCallbackQuery)
+            .map(Update::getCallbackQuery)
+            .map(CallbackQuery::getMessage);
     }
 
     public Map<String, String> getRenderingParameters() {
