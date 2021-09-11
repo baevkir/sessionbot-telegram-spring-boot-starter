@@ -24,8 +24,8 @@ import static org.apache.commons.lang3.ObjectUtils.isNotEmpty;
 public class CommandBuilder {
 
     private String command;
-    private List<String> answers = new ArrayList<>();
-    private Map<String, String> params = new HashMap<>();
+    private final List<String> answers = new ArrayList<>();
+    private final Map<String, String> params = new HashMap<>();
 
     public static CommandBuilder create() {
         return new CommandBuilder();
