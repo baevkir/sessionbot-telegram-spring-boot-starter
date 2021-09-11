@@ -30,8 +30,8 @@ public class CommandParser {
     public String parseCommand() {
         Assert.isTrue(text.startsWith(COMMAND_START), () -> "command has wrong format " + text);
         String commandText = text.substring(1);
-        if (commandText.contains(RENDERING_PARAMETERS_SEPARATOR)) {
-            commandText = commandText.substring(0, commandText.indexOf(RENDERING_PARAMETERS_SEPARATOR));
+        if (commandText.contains(DYNAMIC_PARAMETERS_SEPARATOR)) {
+            commandText = commandText.substring(0, commandText.indexOf(DYNAMIC_PARAMETERS_SEPARATOR));
         }
         String[] commandSplit = commandText.split(COMMAND_PARAMETERS_SEPARATOR_REGEX);
         return commandSplit[0];
@@ -39,19 +39,19 @@ public class CommandParser {
 
     public List<String> parseAnswers() {
         if (!text.startsWith(COMMAND_START)) {
-            var paramsSplit = text.split(RENDERING_PARAMETERS_SEPARATOR);
+            var paramsSplit = text.split(DYNAMIC_PARAMETERS_SEPARATOR);
             return Arrays.asList(paramsSplit[0].split(PARAMETER_SEPARATOR));
         }
         String[] commandSplit = text.split(COMMAND_PARAMETERS_SEPARATOR_REGEX);
         if (commandSplit.length == 1) {
             return Collections.emptyList();
         }
-        var paramsSplit = commandSplit[1].split(RENDERING_PARAMETERS_SEPARATOR);
+        var paramsSplit = commandSplit[1].split(DYNAMIC_PARAMETERS_SEPARATOR);
         return Arrays.asList(paramsSplit[0].split(PARAMETER_SEPARATOR));
     }
 
-    public Map<String, String> parseRenderingParams() {
-        var paramsSplit = text.split(RENDERING_PARAMETERS_SEPARATOR);
+    public Map<String, String> parseDynamicParams() {
+        var paramsSplit = text.split(DYNAMIC_PARAMETERS_SEPARATOR);
         if (paramsSplit.length == 1) {
             return Collections.emptyMap();
         }

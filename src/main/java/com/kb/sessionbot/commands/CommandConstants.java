@@ -6,5 +6,5 @@ public interface CommandConstants {
     String COMMAND_PARAMETERS_SEPARATOR = "?";
     String PARAMETER_SEPARATOR = "&";
     String KEY_VALUE_SEPARATOR = "=";
-    String RENDERING_PARAMETERS_SEPARATOR = "#";
+    String DYNAMIC_PARAMETERS_SEPARATOR = "#";
 }

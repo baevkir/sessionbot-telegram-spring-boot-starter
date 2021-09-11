@@ -31,48 +31,48 @@ class CommandParserTest {
 
     @Test
     void parseCommandWithoutArgumentsWithRenderingParams() {
-        var command = COMMAND_START + TEST_COMMAND + RENDERING_PARAMETERS_SEPARATOR + TEST_RENDERING_PARAMS;
+        var command = COMMAND_START + TEST_COMMAND + DYNAMIC_PARAMETERS_SEPARATOR + TEST_RENDERING_PARAMS;
         assertThat( CommandParser.create(command).parseCommand()).isEqualTo(TEST_COMMAND);
     }
 
     @Test
     void parseCommandWithArgumentsWithRenderingParams() {
-        var command = COMMAND_START + TEST_COMMAND + ARGUMENTS_START + TEST_ARGUMENTS + RENDERING_PARAMETERS_SEPARATOR + TEST_RENDERING_PARAMS;
+        var command = COMMAND_START + TEST_COMMAND + ARGUMENTS_START + TEST_ARGUMENTS + DYNAMIC_PARAMETERS_SEPARATOR + TEST_RENDERING_PARAMS;
         assertThat( CommandParser.create(command).parseCommand()).isEqualTo(TEST_COMMAND);
     }
     @Test
     void parseAnswersEmptyArgs() {
-        var command = COMMAND_START + TEST_COMMAND + RENDERING_PARAMETERS_SEPARATOR + TEST_RENDERING_PARAMS;
+        var command = COMMAND_START + TEST_COMMAND + DYNAMIC_PARAMETERS_SEPARATOR + TEST_RENDERING_PARAMS;
         assertThat( CommandParser.create(command).parseAnswers()).isEmpty();
     }
 
     @Test
     void parseAnswersWithArgumentsWithRenderingParams() {
-        var command = COMMAND_START + TEST_COMMAND + ARGUMENTS_START + TEST_ARGUMENTS + RENDERING_PARAMETERS_SEPARATOR + TEST_RENDERING_PARAMS;
+        var command = COMMAND_START + TEST_COMMAND + ARGUMENTS_START + TEST_ARGUMENTS + DYNAMIC_PARAMETERS_SEPARATOR + TEST_RENDERING_PARAMS;
         assertThat( CommandParser.create(command).parseAnswers()).hasSize(2).contains(TEST_ARGUMENT1, TEST_ARGUMENT2);
     }
 
     @Test
     void parseRenderingParamsEmptyRenderingParams() {
         var command = COMMAND_START + TEST_COMMAND + ARGUMENTS_START + TEST_ARGUMENTS;
-        assertThat( CommandParser.create(command).parseRenderingParams()).isEmpty();
+        assertThat( CommandParser.create(command).parseDynamicParams()).isEmpty();
     }
 
     @Test
     void parseRenderingParamsWithArgumentsWithRenderingParams() {
-        var command = COMMAND_START + TEST_COMMAND + ARGUMENTS_START + TEST_ARGUMENTS + RENDERING_PARAMETERS_SEPARATOR + TEST_RENDERING_PARAMS;
-        assertThat( CommandParser.create(command).parseRenderingParams()).hasSize(1).containsEntry(TEST_RENDERING_PARAMS_KEY, TEST_RENDERING_PARAMS_VALUE);
+        var command = COMMAND_START + TEST_COMMAND + ARGUMENTS_START + TEST_ARGUMENTS + DYNAMIC_PARAMETERS_SEPARATOR + TEST_RENDERING_PARAMS;
+        assertThat( CommandParser.create(command).parseDynamicParams()).hasSize(1).containsEntry(TEST_RENDERING_PARAMS_KEY, TEST_RENDERING_PARAMS_VALUE);
     }
 
     @Test
     void parseRenderingParamsEmptyArgumentsWithRenderingParams() {
-        var command = COMMAND_START + TEST_COMMAND + RENDERING_PARAMETERS_SEPARATOR + TEST_RENDERING_PARAMS;
-        assertThat( CommandParser.create(command).parseRenderingParams()).hasSize(1).containsEntry(TEST_RENDERING_PARAMS_KEY, TEST_RENDERING_PARAMS_VALUE);
+        var command = COMMAND_START + TEST_COMMAND + DYNAMIC_PARAMETERS_SEPARATOR + TEST_RENDERING_PARAMS;
+        assertThat( CommandParser.create(command).parseDynamicParams()).hasSize(1).containsEntry(TEST_RENDERING_PARAMS_KEY, TEST_RENDERING_PARAMS_VALUE);
     }
 
     @Test
     void parseRenderingParamsOnlyRenderingParams() {
-        var command = RENDERING_PARAMETERS_SEPARATOR + TEST_RENDERING_PARAMS;
-        assertThat( CommandParser.create(command).parseRenderingParams()).hasSize(1).containsEntry(TEST_RENDERING_PARAMS_KEY, TEST_RENDERING_PARAMS_VALUE);
+        var command = DYNAMIC_PARAMETERS_SEPARATOR + TEST_RENDERING_PARAMS;
+        assertThat( CommandParser.create(command).parseDynamicParams()).hasSize(1).containsEntry(TEST_RENDERING_PARAMS_KEY, TEST_RENDERING_PARAMS_VALUE);
     }
 }

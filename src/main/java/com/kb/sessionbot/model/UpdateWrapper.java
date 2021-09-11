@@ -1,5 +1,6 @@
 package com.kb.sessionbot.model;
 
+import com.kb.sessionbot.commands.CommandBuilder;
 import com.kb.sessionbot.commands.CommandParser;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -15,9 +16,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-import static com.kb.sessionbot.commands.CommandConstants.COMMAND_START;
-import static com.kb.sessionbot.commands.CommandConstants.RENDERING_PARAMETERS_SEPARATOR;
-import static com.kb.sessionbot.commands.RenderingParamsConstants.REFRESH_CONTEXT;
+import static com.kb.sessionbot.commands.CommandConstants.DYNAMIC_PARAMETERS_SEPARATOR;
 
 @Slf4j
 @Getter
@@ -47,7 +46,7 @@ public class UpdateWrapper {
     }
 
     public boolean needRefreshContext() {
-        return getRenderingParameters().containsKey(REFRESH_CONTEXT);
+        return getDynamicParams().containsKey(CommandBuilder.REFRESH_CONTEXT_PARAM);
     }
 
     public Message getMessage() {
@@ -55,7 +54,7 @@ public class UpdateWrapper {
     }
 
     public Optional<String> getArguments() {
-       return getText().filter(text -> !text.startsWith(RENDERING_PARAMETERS_SEPARATOR));
+       return getText().filter(text -> !text.startsWith(DYNAMIC_PARAMETERS_SEPARATOR));
     }
 
     public Optional<Message> getCallbackMessage() {
@@ -65,9 +64,9 @@ public class UpdateWrapper {
             .map(CallbackQuery::getMessage);
     }
 
-    public Map<String, String> getRenderingParameters() {
+    public Map<String, String> getDynamicParams() {
         return getText()
-            .map(text -> CommandParser.create(text).parseRenderingParams())
+            .map(text -> CommandParser.create(text).parseDynamicParams())
             .orElse(Collections.emptyMap());
     }
 

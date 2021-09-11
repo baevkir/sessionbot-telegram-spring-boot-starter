@@ -86,7 +86,7 @@ public class CommandContext {
             .build();
     }
 
-    public Map<String, String> getRenderingParameters() {
-        return getCurrentUpdate().orElse(commandUpdate).getRenderingParameters();
+    public Map<String, String> getDynamicParams() {
+        return getCurrentUpdate().orElse(commandUpdate).getDynamicParams();
     }
 }
