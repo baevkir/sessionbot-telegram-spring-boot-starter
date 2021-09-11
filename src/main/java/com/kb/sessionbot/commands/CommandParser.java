@@ -38,6 +38,10 @@ public class CommandParser {
     }
 
     public List<String> parseAnswers() {
+        if (!text.startsWith(COMMAND_START)) {
+            var paramsSplit = text.split(RENDERING_PARAMETERS_SEPARATOR);
+            return Arrays.asList(paramsSplit[0].split(PARAMETER_SEPARATOR));
+        }
         String[] commandSplit = text.split(COMMAND_PARAMETERS_SEPARATOR);
         if (commandSplit.length == 1) {
             return Collections.emptyList();

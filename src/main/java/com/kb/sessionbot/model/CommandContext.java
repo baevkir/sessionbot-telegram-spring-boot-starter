@@ -27,7 +27,7 @@ public class CommandContext {
         context.commandUpdate = commandUpdate;
         context.updates.add(commandUpdate);
 
-        CommandParser parser = CommandParser.create(commandUpdate.getMessage().getText());
+        CommandParser parser = CommandParser.create(commandUpdate.getText().orElse(""));
         context.command = parser.parseCommand();
         context.answers.addAll(parser.parseAnswers());
 
@@ -57,15 +57,18 @@ public class CommandContext {
         return commandUpdate == null;
     }
 
-    public Optional<String> getPendingArgument() {
-        return getCurrentUpdate().flatMap(UpdateWrapper::getArgument);
+    public List<String> getPendingArguments() {
+        return getCurrentUpdate()
+            .flatMap(UpdateWrapper::getArguments)
+            .map(CommandParser::create)
+            .map(CommandParser::parseAnswers)
+            .orElse(Collections.emptyList());
     }
 
     public String getChatId() {
         return Optional.ofNullable(commandUpdate)
-            .map(UpdateWrapper::getMessage)
-            .map(Message::getChatId)
-            .map(String::valueOf)
+            .or(this::getCurrentUpdate)
+            .map(UpdateWrapper::getChatId)
             .orElse(null);
     }
 
@@ -74,9 +77,10 @@ public class CommandContext {
     }
 
     public List<Object> getAnswers() {
-        var builder = ImmutableList.builder().addAll(answers);
-        getPendingArgument().ifPresent(builder::add);
-        return builder.build();
+        return ImmutableList.builder()
+            .addAll(answers)
+            .addAll(getPendingArguments())
+            .build();
     }
 
     public Map<String, String> getRenderingParameters() {

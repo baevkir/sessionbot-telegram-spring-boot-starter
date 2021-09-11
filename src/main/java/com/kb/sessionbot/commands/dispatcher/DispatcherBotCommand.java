@@ -22,10 +22,10 @@ public class DispatcherBotCommand implements IBotCommand {
         if (invocationResult.hasErrors()) {
             return Mono.error(invocationResult.getInvocationError());
         }
+        commandContext.getPendingArguments().forEach(commandContext::addAnswer);
         if (invocationResult.getInvocationArgument() != null) {
             return invocationResult.getInvocationArgument();
         }
-        commandContext.addAnswer(commandContext.getPendingArgument().orElse(null));
         return invocationResult.getInvocation();
     }
 

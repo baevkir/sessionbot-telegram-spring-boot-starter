@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import static com.kb.sessionbot.commands.CommandConstants.COMMAND_START;
 import static com.kb.sessionbot.commands.CommandConstants.RENDERING_PARAMETERS_SEPARATOR;
 
 @Slf4j
@@ -34,7 +35,7 @@ public class UpdateWrapper {
         }
         if (update.hasCallbackQuery()) {
             CallbackQuery callbackQuery = update.getCallbackQuery();
-            return String.valueOf(callbackQuery.getMessage());
+            return String.valueOf(callbackQuery.getMessage().getChatId());
         }
         log.error("Cannot get chat id from update.{}", update);
         throw new RuntimeException("Cannot get chat id from update");
@@ -48,7 +49,7 @@ public class UpdateWrapper {
         return update.getMessage();
     }
 
-    public Optional<String> getArgument() {
+    public Optional<String> getArguments() {
        return getText().filter(text -> !text.startsWith(RENDERING_PARAMETERS_SEPARATOR));
     }
 
@@ -58,7 +59,7 @@ public class UpdateWrapper {
             .orElse(Collections.emptyMap());
     }
 
-    private Optional<String> getText() {
+    public Optional<String> getText() {
         if (update.hasMessage()) {
             return Optional.of(getMessage().getText());
         }

@@ -137,7 +137,7 @@ public class CommandsDescriptor {
         Parameter param = parameter.getAnnotation(Parameter.class);
         int index = param.index();
         var answers = context.getAnswers();
-        if (index <= answers.size()) {
+        if (index < answers.size()) {
             return mapper.convertValue(answers.get(index), parameter.getType());
         }
         return null;
@@ -203,7 +203,7 @@ public class CommandsDescriptor {
             if (method != null) {
                 return Optional.of(method);
             }
-            var lastIndex = argumentsString.contains(PARAMETER_SEPARATOR) ? argumentsString.lastIndexOf(PARAMETER_SEPARATOR)-1 : 0;
+            var lastIndex = argumentsString.contains(PARAMETER_SEPARATOR) ? argumentsString.lastIndexOf(PARAMETER_SEPARATOR) : 0;
             argumentsString = argumentsString.substring(0, lastIndex);
         }
         return Optional.empty();
