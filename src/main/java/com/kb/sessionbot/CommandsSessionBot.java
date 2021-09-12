@@ -12,9 +12,12 @@ import org.springframework.util.Assert;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
 import javax.annotation.PostConstruct;
@@ -63,13 +66,20 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
 
     @PostConstruct
     public void init() {
-        updatesSink.asFlux()
-            .map(UpdateWrapper::wrap)
-            .groupBy(UpdateWrapper::getChatId)
-            .flatMap(this::handleUpdates)
-            .onErrorResume(errorHandler::handle)
-            .mergeWith(messagesSink.asFlux())
-            .subscribe(this::executeMessage);
+        var setMyCommands = Flux.fromIterable(commandsFactory.getCommands())
+            .map(command -> BotCommand.builder().command(command.getCommandIdentifier()).description(command.getDescription()).build())
+            .collectList()
+            .map(commands -> SetMyCommands.builder().commands(commands).build());
+
+        Flux.concat(
+                setMyCommands,
+                updatesSink.asFlux()
+                    .map(UpdateWrapper::wrap)
+                    .groupBy(UpdateWrapper::getChatId)
+                    .flatMap(this::handleUpdates)
+                    .onErrorResume(errorHandler::handle)
+                    .mergeWith(messagesSink.asFlux())
+            ).subscribe(this::executeMessage);
     }
 
     private Flux<PartialBotApiMethod<?>> handleUpdates(Flux<UpdateWrapper> updates) {

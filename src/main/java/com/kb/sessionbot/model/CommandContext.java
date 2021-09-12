@@ -18,7 +18,7 @@ public class CommandContext {
 
     private UpdateWrapper commandUpdate;
     private String command;
-    private final Deque<UpdateWrapper> updates = new ArrayDeque<>();
+    private final Deque<UpdateWrapper> updates = new LinkedList<>();
     private final List<String> answers = Collections.synchronizedList(new ArrayList<>());
 
     public static CommandContext create(UpdateWrapper commandUpdate) {

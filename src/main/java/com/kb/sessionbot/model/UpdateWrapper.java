@@ -50,7 +50,9 @@ public class UpdateWrapper {
     }
 
     public Message getMessage() {
-        return update.getMessage();
+        return Optional.ofNullable(update.getMessage())
+            .or(this::getCallbackMessage)
+            .orElse(null);
     }
 
     public Optional<String> getArguments() {

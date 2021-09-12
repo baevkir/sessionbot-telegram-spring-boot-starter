@@ -1,11 +1,10 @@
 package com.kb.sessionbot.commands;
 
+import com.google.common.collect.ImmutableList;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.PostConstruct;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 public class CommandsFactory {
@@ -25,6 +24,13 @@ public class CommandsFactory {
 
     public final IBotCommand getCommand(String commandName) {
         return commandRegistryMap.getOrDefault(commandName, helpCommand);
+    }
+
+    public final List<IBotCommand> getCommands() {
+        var commands = new ArrayList<IBotCommand>();
+        commands.add(helpCommand);
+        commands.addAll(botCommands);
+        return Collections.unmodifiableList(commands);
     }
 
     @PostConstruct

@@ -2,11 +2,17 @@ package com.kb.sessionbot.commands.dispatcher;
 
 import com.kb.sessionbot.commands.IBotCommand;
 import com.kb.sessionbot.model.CommandContext;
+import com.kb.sessionbot.model.UpdateWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.springframework.context.ApplicationContext;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
+import org.telegram.telegrambots.meta.api.objects.Message;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Objects;
 
 @Slf4j
 public class DispatcherBotCommand implements IBotCommand {
@@ -25,6 +31,23 @@ public class DispatcherBotCommand implements IBotCommand {
         commandContext.getPendingArguments().forEach(commandContext::addAnswer);
         if (invocationResult.getInvocationArgument() != null) {
             return invocationResult.getInvocationArgument();
+        }
+        if (commandContext.getUpdates().size() >= 2) {
+            var removeOldMessages = Flux.fromIterable(commandContext.getUpdates())
+                .skip(1)
+                .mapNotNull(update -> update.getCallbackMessage().orElse(null))
+                .map(Message::getMessageId)
+                .distinct()
+                .map(messageId ->
+                    DeleteMessage.builder()
+                        .chatId(commandContext.getChatId())
+                        .messageId(messageId)
+                        .build()
+                );
+            return Flux.concat(
+                invocationResult.getInvocation(),
+                removeOldMessages
+            );
         }
         return invocationResult.getInvocation();
     }
