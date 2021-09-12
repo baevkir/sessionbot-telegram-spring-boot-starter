@@ -110,9 +110,10 @@ public class DateParameterRenderer implements ParameterRenderer {
                     continue;
                 }
                 var dayOfMonth = currentDate.getDayOfMonth();
+                var isCurrentDate = currentDate.isEqual(LocalDate.now());
                 weekRow.add(
                     InlineKeyboardButton.builder()
-                        .text(String.valueOf(dayOfMonth))
+                        .text((isCurrentDate ? "<" : "") + dayOfMonth + (isCurrentDate ? ">" : ""))
                         .callbackData(CommandBuilder.create().addAnswer(currentDate.format(ISO_DATE)).build())
                         .build()
                 );
