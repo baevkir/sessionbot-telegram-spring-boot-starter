@@ -37,10 +37,6 @@ public class CommandContext {
         return new CommandContext();
     }
 
-    public Message getCommandMessage() {
-        return commandUpdate.getMessage();
-    }
-
     public CommandContext addAnswer(String answer) {
         answers.add(answer);
         return this;

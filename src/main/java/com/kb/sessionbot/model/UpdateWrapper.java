@@ -10,12 +10,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.User;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import static com.kb.sessionbot.commands.CommandConstants.COMMAND_START;
 import static com.kb.sessionbot.commands.CommandConstants.DYNAMIC_PARAMETERS_SEPARATOR;
 
 @Slf4j
@@ -42,21 +44,23 @@ public class UpdateWrapper {
     }
 
     public boolean isCommand() {
-        return update.hasMessage() && update.getMessage().isCommand();
+        return (update.hasMessage() && update.getMessage().isCommand()) ||
+            getText().map(text -> text.startsWith(COMMAND_START)).orElse(false);
     }
 
     public boolean needRefreshContext() {
         return getDynamicParams().containsKey(CommandBuilder.REFRESH_CONTEXT_PARAM);
     }
 
-    public Message getMessage() {
+    public User getFrom() {
         return Optional.ofNullable(update.getMessage())
-            .or(this::getCallbackMessage)
+            .map(Message::getFrom)
+            .or(() -> Optional.ofNullable(update.getCallbackQuery()).map(CallbackQuery::getFrom))
             .orElse(null);
     }
 
     public Optional<String> getArguments() {
-       return getText().filter(text -> !text.startsWith(DYNAMIC_PARAMETERS_SEPARATOR));
+        return getText().filter(text -> !text.startsWith(DYNAMIC_PARAMETERS_SEPARATOR));
     }
 
     public Optional<Message> getCallbackMessage() {
@@ -74,7 +78,7 @@ public class UpdateWrapper {
 
     public Optional<String> getText() {
         if (update.hasMessage()) {
-            return Optional.of(getMessage().getText());
+            return Optional.of(update.getMessage().getText());
         }
         if (update.hasCallbackQuery()) {
             return Optional.of(update.getCallbackQuery().getData());

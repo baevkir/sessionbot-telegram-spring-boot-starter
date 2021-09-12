@@ -16,12 +16,11 @@ public class BotCommandErrorHandler implements ErrorHandler<BotCommandException>
     public Mono<? extends PartialBotApiMethod<?>> handle(BotCommandException exception) {
         String botMessage = Optional.ofNullable(ExceptionUtils.getRootCause(exception).getMessage())
                 .orElse("Error during chat bot command. Please try again letter.");
-        Long chatId = exception.getContext().getCommandMessage().getChatId();
         log.error(botMessage, exception);
         return Mono.fromSupplier(() ->
                 SendMessage
                         .builder()
-                        .chatId(Long.toString(chatId))
+                        .chatId(exception.getContext().getChatId())
                         .text(botMessage)
                         .build()
         );

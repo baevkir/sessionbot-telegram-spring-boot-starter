@@ -78,8 +78,8 @@ public class CommandsDescriptor {
                 if (invocationResult.hasErrors()) {
                     continue;
                 }
-                if (Message.class.equals(parameter.getType()) && parameter.getName().equals("command")) {
-                    args.add(context.getCommandMessage());
+                if (UpdateWrapper.class.equals(parameter.getType()) && parameter.getName().equals("command")) {
+                    args.add(context.getCommandUpdate());
                     continue;
                 } else if (UpdateWrapper.class.equals(parameter.getType()) && parameter.getName().equals("update")) {
                     args.add(context.getCurrentUpdate().orElse(null));
@@ -88,7 +88,7 @@ public class CommandsDescriptor {
                     args.add(context.getCurrentUpdate().map(UpdateWrapper::getUpdate).orElse(null));
                     continue;
                 } else if (User.class.equals(parameter.getType()) && parameter.getName().equals("from")) {
-                    args.add(context.getCommandMessage().getFrom());
+                    args.add(context.getCommandUpdate().getFrom());
                     continue;
                 }
                 if (CommandContext.class.equals(parameter.getType())) {
