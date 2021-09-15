@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 
-public class DefaultParameterRenderer implements ParameterRenderer{
+public class TextParameterRenderer implements ParameterRenderer{
     @Override
     public Publisher<? extends PartialBotApiMethod<?>> render(ParameterRequest parameterRequest) {
         return Mono.fromSupplier(() -> {

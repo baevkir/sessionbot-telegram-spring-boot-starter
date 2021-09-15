@@ -8,7 +8,8 @@ import com.kb.sessionbot.commands.IBotCommand;
 import com.kb.sessionbot.commands.dispatcher.DispatcherBotCommand;
 import com.kb.sessionbot.commands.dispatcher.annotations.BotCommand;
 import com.kb.sessionbot.commands.dispatcher.parameters.DateParameterRenderer;
-import com.kb.sessionbot.commands.dispatcher.parameters.DefaultParameterRenderer;
+import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRendererFactory;
+import com.kb.sessionbot.commands.dispatcher.parameters.TextParameterRenderer;
 import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
 import com.kb.sessionbot.errors.handler.BotAuthErrorHandler;
 import com.kb.sessionbot.errors.handler.BotCommandErrorHandler;
@@ -72,8 +73,14 @@ public class CommandsSessionBotConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(name = "defaultParameterRenderer")
-    public ParameterRenderer defaultParameterRenderer() {
-       return new DefaultParameterRenderer();
+    public ParameterRenderer defaultParameterRenderer(ParameterRenderer textParameterRenderer, ParameterRenderer dateParameterRenderer) {
+        return new ParameterRendererFactory(textParameterRenderer, dateParameterRenderer);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "textParameterRenderer")
+    public ParameterRenderer textParameterRenderer() {
+        return new TextParameterRenderer();
     }
 
     @Bean
