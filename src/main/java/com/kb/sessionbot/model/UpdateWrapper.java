@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.BooleanUtils;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -52,6 +53,9 @@ public class UpdateWrapper {
         return getDynamicParams().containsKey(CommandBuilder.REFRESH_CONTEXT_PARAM);
     }
 
+    public boolean scipAnswer() {
+        return BooleanUtils.toBoolean(getDynamicParams().getOrDefault(CommandBuilder.SCIP_ANSWER_PARAM, "false"));
+    }
     public User getFrom() {
         return Optional.ofNullable(update.getMessage())
             .map(Message::getFrom)

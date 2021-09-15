@@ -35,19 +35,19 @@ public class DateParameterRenderer implements ParameterRenderer {
                 return EditMessageReplyMarkup.builder()
                     .chatId(parameterRequest.getContext().getChatId())
                     .messageId(calbackMessage.getMessageId())
-                    .replyMarkup(buildKeyBoard(date))
+                    .replyMarkup(buildKeyBoard(parameterRequest,date))
                     .build();
             }
             return SendMessage
                 .builder()
                 .chatId(parameterRequest.getContext().getChatId())
                 .text(String.format("%s (Формат: %s)", parameterRequest.getText(), LocalDate.now().format(ISO_DATE)))
-                .replyMarkup(buildKeyBoard(date))
+                .replyMarkup(buildKeyBoard(parameterRequest, date))
                 .build();
         });
     }
 
-    private InlineKeyboardMarkup buildKeyBoard(LocalDate date) {
+    private InlineKeyboardMarkup buildKeyBoard(ParameterRequest parameterRequest, LocalDate date) {
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
 
         rowsInline.add(Collections.singletonList(
@@ -123,26 +123,35 @@ public class DateParameterRenderer implements ParameterRenderer {
         }
 
         rowsInline.add(Arrays.asList(
-            InlineKeyboardButton.builder()
-                .text("<")
-                .callbackData(
-                    CommandBuilder.create()
-                        .addParam(DATE_PROPERTY, date.minusMonths(1).format(ISO_DATE))
-                        .addParam(CONTINUE_CHOOSE)
-                        .build()
-                )
-                .build(),
-            InlineKeyboardButton.builder()
-                .text(">")
-                .callbackData(
-                    CommandBuilder.create()
-                        .addParam(DATE_PROPERTY, date.plusMonths(1).format(ISO_DATE))
-                        .addParam(CONTINUE_CHOOSE)
-                        .build()
-                )
-                .build()
-        ));
+                InlineKeyboardButton.builder()
+                    .text("<")
+                    .callbackData(
+                        CommandBuilder.create()
+                            .addParam(DATE_PROPERTY, date.minusMonths(1).format(ISO_DATE))
+                            .addParam(CONTINUE_CHOOSE)
+                            .build()
+                    )
+                    .build(),
+                InlineKeyboardButton.builder()
+                    .text(">")
+                    .callbackData(
+                        CommandBuilder.create()
+                            .addParam(DATE_PROPERTY, date.plusMonths(1).format(ISO_DATE))
+                            .addParam(CONTINUE_CHOOSE)
+                            .build()
+                    )
+                    .build()
+            )
+        );
 
+        if (!parameterRequest.isRequired()) {
+            rowsInline.add(
+                Collections.singletonList(InlineKeyboardButton.builder()
+                    .text("Пропусить")
+                    .callbackData(CommandBuilder.create().scipAnswer().build())
+                    .build())
+            );
+        }
         return InlineKeyboardMarkup.builder()
             .keyboard(rowsInline)
             .build();

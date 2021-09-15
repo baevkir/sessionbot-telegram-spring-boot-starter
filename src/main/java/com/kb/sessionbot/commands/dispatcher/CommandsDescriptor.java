@@ -20,7 +20,6 @@ import org.reactivestreams.Publisher;
 import org.springframework.context.ApplicationContext;
 import org.springframework.util.ReflectionUtils;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
 import reactor.core.publisher.Mono;
@@ -102,14 +101,21 @@ public class CommandsDescriptor {
                     args.add(argument);
                 } else {
                     Parameter param = parameter.getAnnotation(Parameter.class);
-                    invocationResult.invocationArgument = getRenderer(param).render(
-                        ParameterRequest.builder()
-                            .text(String.format("Пожалуйста укажите поле '%s'.", param.name().isEmpty()? parameter.getName() : param.name()))
-                            .context(context)
-                            .options(Sets.newHashSet(param.rendering().options()))
-                            .build()
-                    );
-                    return invocationResult;
+                    if (!param.required() && context.getCurrentUpdate().map(UpdateWrapper::scipAnswer).orElse(false)) {
+                        args.add(null);
+                    } else {
+                        invocationResult.invocationArgument = getRenderer(param).render(
+                            ParameterRequest.builder()
+                                .text(String.format("Пожалуйста укажите поле '%s'.", param.name().isEmpty()? parameter.getName() : param.name()))
+                                .parameterType(parameter.getType())
+                                .required(param.required())
+                                .context(context)
+                                .options(Sets.newHashSet(param.rendering().options()))
+                                .build()
+                        );
+                        return invocationResult;
+                    }
+
                 }
             }
 

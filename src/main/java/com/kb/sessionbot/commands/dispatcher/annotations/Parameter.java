@@ -10,5 +10,6 @@ import java.lang.annotation.Target;
 public @interface Parameter {
     int index();
     String name() default "";
+    boolean required() default true;
     Rendering rendering() default @Rendering;
 }

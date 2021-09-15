@@ -15,5 +15,6 @@ public class ParameterRequest {
     private final CommandContext context;
     private final String text;
     private final Class<?> parameterType;
+    private final boolean required;
     private final Set<String> options;
 }
