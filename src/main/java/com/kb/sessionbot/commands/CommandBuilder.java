@@ -38,6 +38,11 @@ public class CommandBuilder {
         return this;
     }
 
+    public CommandBuilder addAnswers(List<String> answers) {
+        answers.addAll(answers);
+        return this;
+    }
+
     public CommandBuilder addParam(String param, String value) {
         params.put(param, value);
         return this;

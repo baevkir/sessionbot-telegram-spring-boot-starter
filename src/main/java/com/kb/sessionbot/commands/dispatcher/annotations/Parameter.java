@@ -8,8 +8,8 @@ import java.lang.annotation.Target;
 @Target({ElementType.PARAMETER, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Parameter {
-    int index();
-    String name() default "";
+    String value() default "";
+    String displayName() default "";
     boolean required() default true;
     Rendering rendering() default @Rendering;
 }

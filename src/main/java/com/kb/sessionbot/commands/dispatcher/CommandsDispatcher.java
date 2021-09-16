@@ -1,0 +1,197 @@
+package com.kb.sessionbot.commands.dispatcher;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.common.collect.Sets;
+import com.kb.sessionbot.commands.CommandBuilder;
+import com.kb.sessionbot.commands.dispatcher.annotations.BotCommand;
+import com.kb.sessionbot.commands.dispatcher.annotations.Parameter;
+import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
+import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRequest;
+import com.kb.sessionbot.errors.exception.BotCommandException;
+import com.kb.sessionbot.model.CommandContext;
+import com.kb.sessionbot.model.MethodDescriptor;
+import com.kb.sessionbot.model.ParameterDescriptor;
+import com.kb.sessionbot.model.UpdateWrapper;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.reactivestreams.Publisher;
+import org.springframework.context.ApplicationContext;
+import org.springframework.util.Assert;
+import org.springframework.util.ReflectionUtils;
+import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
+import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.User;
+import reactor.core.publisher.Mono;
+
+import java.lang.reflect.Method;
+import java.util.*;
+
+
+@Slf4j
+public class CommandsDispatcher {
+    private final Object command;
+    private final MethodMatcher methodMatcher;
+    private final ObjectMapper mapper;
+    private final ApplicationContext applicationContext;
+
+    public CommandsDispatcher(Object command, ApplicationContext applicationContext) {
+        this.command = command;
+        this.methodMatcher = MethodMatcher.create(command);
+        mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        this.applicationContext = applicationContext;
+    }
+
+    public String getCommandId() {
+        return command.getClass().getAnnotation(BotCommand.class).value();
+    }
+
+    public String getCommandDescription() {
+        return command.getClass().getAnnotation(BotCommand.class).description();
+    }
+
+    public boolean isHidden() {
+        return command.getClass().getAnnotation(BotCommand.class).hidden();
+    }
+
+    public InvocationResult invoke(CommandContext context) {
+        var invocationResult = new InvocationResult();
+
+        try {
+            var methodDescriptor = findInvokerMethod(context, invocationResult);
+            if (methodDescriptor == null) {
+                if (invocationResult.invocationArgument != null) {
+                    return invocationResult;
+                }
+                throw new RuntimeException(
+                    "Cannot find command method for " + context.getCommand() + " with arguments " + context.getAnswers()
+                );
+            }
+            invocationResult.invocationMethod = methodDescriptor.getMethod();
+
+            var answers = context.getAnswers();
+            var args = new ArrayList<>();
+            for (ParameterDescriptor parameter : methodDescriptor.getParameters()) {
+                if (invocationResult.hasErrors()) {
+                    continue;
+                }
+
+                if (parameter.isAnnotated()) {
+                    Optional<?> argument = getArgument(answers, methodDescriptor, parameter);
+                    if (argument.isPresent()) {
+                        invocationResult.addArgument(argument.get());
+                        args.add(argument.get());
+                    } else {
+                        if (!parameter.isRequired() && context.getCurrentUpdate().map(UpdateWrapper::scipAnswer).orElse(false)) {
+                            invocationResult.addArgument(null);
+                            args.add(null);
+                        } else {
+                            invocationResult.invocationArgument = getRenderer(parameter).render(
+                                ParameterRequest.builder()
+                                    .text(String.format("Пожалуйста укажите поле '%s'.", parameter.getName()))
+                                    .parameterType(parameter.getParameterType())
+                                    .required(parameter.isRequired())
+                                    .context(context)
+                                    .options(Sets.newHashSet(parameter.getOptions()))
+                                    .build()
+                            );
+                            return invocationResult;
+                        }
+                    }
+                    continue;
+                }
+
+                if (UpdateWrapper.class.equals(parameter.getParameterType()) && parameter.getName().equals("command")) {
+                    args.add(context.getCommandUpdate());
+                } else if (UpdateWrapper.class.equals(parameter.getParameterType()) && parameter.getName().equals("update")) {
+                    args.add(context.getCurrentUpdate().orElse(null));
+                } else if (Update.class.equals(parameter.getParameterType()) && parameter.getName().equals("update")) {
+                    args.add(context.getCurrentUpdate().map(UpdateWrapper::getUpdate).orElse(null));
+                } else if (User.class.equals(parameter.getParameterType()) && parameter.getName().equals("from")) {
+                    args.add(context.getCommandUpdate().getFrom());
+                } else if (String.class.equals(parameter.getParameterType()) && parameter.getName().equals("chatId")) {
+                    args.add(context.getChatId());
+                } else if (CommandContext.class.equals(parameter.getParameterType())) {
+                    args.add(context);
+                }
+
+            }
+
+            if (!invocationResult.hasErrors()) {
+                invocationResult.invocation = Mono.fromSupplier(
+                        () -> {
+                            ReflectionUtils.makeAccessible(invocationResult.invocationMethod);
+                            return ReflectionUtils.invokeMethod(
+                                invocationResult.invocationMethod,
+                                command,
+                                args.toArray()
+                            );
+                        })
+                    .flatMapMany(result -> InvocationResultResolver.of(result).resolve())
+                    .onErrorMap(error -> new BotCommandException(context, error));
+            }
+        } catch (Throwable error) {
+            invocationResult.invocationError = new BotCommandException(context, error);
+        }
+
+        return invocationResult;
+    }
+
+    private Optional<?> getArgument(List<String> answers, MethodDescriptor methodDescriptor, ParameterDescriptor parameter) {
+        var argumentIndex = methodDescriptor.getPlaceholderIndexes().get(parameter.getName());
+        Assert.notNull(
+            argumentIndex,
+            () -> String.format("Placeholder %s is not defined in %s", parameter.getName(), methodDescriptor.getArguments())
+        );
+        if (argumentIndex < answers.size()) {
+             return Optional.of(mapper.convertValue(answers.get(argumentIndex), parameter.getParameterType()));
+        }
+        return Optional.empty();
+    }
+
+    private ParameterRenderer getDefaultRenderer() {
+        return applicationContext.getBean("defaultParameterRenderer", ParameterRenderer.class);
+    }
+
+    private ParameterRenderer getRenderer(ParameterDescriptor parameter) {
+        if (parameter.getRendererType() != ParameterRenderer.class) {
+            return applicationContext.getBean(parameter.getRendererType());
+        }
+        return applicationContext.getBean(parameter.getRenderer(), ParameterRenderer.class);
+    }
+
+    private MethodDescriptor findInvokerMethod(CommandContext commandContext, InvocationResult invocationResult) {
+        return methodMatcher.getMatchingMethod(commandContext).orElseGet(() -> {
+            var options = CommandBuilder.create().addAnswers(commandContext.getAnswers()).build();
+            invocationResult.invocationArgument = getDefaultRenderer().render(
+                ParameterRequest.builder()
+                    .context(commandContext)
+                    .text(String.format("Опции %s не поддерживаются для команды %s", options, commandContext.getCommand()))
+                    .build()
+            );
+            return null;
+        });
+    }
+
+    @Getter
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class InvocationResult {
+        private Publisher<? extends PartialBotApiMethod<?>> invocation;
+        private Publisher<? extends PartialBotApiMethod<?>> invocationArgument;
+        private Method invocationMethod;
+        private final List<Object> commandArguments = new ArrayList<>();
+        private Throwable invocationError;
+
+        public boolean hasErrors() {
+            return invocationError != null;
+        }
+
+        private void addArgument(Object argument) {
+            commandArguments.add(argument);
+        }
+    }
+
+}

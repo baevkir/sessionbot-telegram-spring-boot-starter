@@ -2,7 +2,6 @@ package com.kb.sessionbot.commands.dispatcher;
 
 import com.kb.sessionbot.commands.IBotCommand;
 import com.kb.sessionbot.model.CommandContext;
-import com.kb.sessionbot.model.UpdateWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.springframework.context.ApplicationContext;
@@ -12,19 +11,17 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Objects;
-
 @Slf4j
 public class DispatcherBotCommand implements IBotCommand {
 
-    private final CommandsDescriptor commandsDescriptor;
+    private final CommandsDispatcher commandsDispatcher;
 
     public DispatcherBotCommand(Object handler, ApplicationContext applicationContext) {
-        this.commandsDescriptor = new CommandsDescriptor(handler, applicationContext);
+        this.commandsDispatcher = new CommandsDispatcher(handler, applicationContext);
     }
 
     public Publisher<? extends PartialBotApiMethod<?>> process(CommandContext commandContext) {
-        var invocationResult = commandsDescriptor.invoke(commandContext);
+        var invocationResult = commandsDispatcher.invoke(commandContext);
         if (invocationResult.hasErrors()) {
             return Mono.error(invocationResult.getInvocationError());
         }
@@ -54,16 +51,16 @@ public class DispatcherBotCommand implements IBotCommand {
 
     @Override
     public String getCommandIdentifier() {
-        return commandsDescriptor.getCommandId();
+        return commandsDispatcher.getCommandId();
     }
 
     @Override
     public String getDescription() {
-        return commandsDescriptor.getCommandDescription();
+        return commandsDispatcher.getCommandDescription();
     }
 
     @Override
     public boolean hidden() {
-        return commandsDescriptor.isHidden();
+        return commandsDispatcher.isHidden();
     }
 }

@@ -75,11 +75,11 @@ public class CommandContext {
         return Optional.ofNullable(updates.peekLast());
     }
 
-    public List<Object> getAnswers() {
-        return ImmutableList.builder()
-            .addAll(answers)
-            .addAll(getPendingArguments())
-            .build();
+    public List<String> getAnswers() {
+        var result = new ArrayList<String>();
+        result.addAll(answers);
+        result.addAll(getPendingArguments());
+        return Collections.unmodifiableList(result);
     }
 
     public Map<String, String> getDynamicParams() {
