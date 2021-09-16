@@ -33,28 +33,23 @@ import java.util.*;
 @Slf4j
 public class CommandsDispatcher {
     private final Object command;
+    @Getter private final String commandId;
+    @Getter private final String commandDescription;
+    @Getter private final boolean hidden;
     private final MethodMatcher methodMatcher;
     private final ObjectMapper mapper;
     private final ApplicationContext applicationContext;
 
     public CommandsDispatcher(Object command, ApplicationContext applicationContext) {
         this.command = command;
+        var botCommand = command.getClass().getAnnotation(BotCommand.class);
+        this.commandId = botCommand.value();
+        this.commandDescription = botCommand.description();
+        this.hidden = botCommand.hidden();
         this.methodMatcher = MethodMatcher.create(command);
         mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         this.applicationContext = applicationContext;
-    }
-
-    public String getCommandId() {
-        return command.getClass().getAnnotation(BotCommand.class).value();
-    }
-
-    public String getCommandDescription() {
-        return command.getClass().getAnnotation(BotCommand.class).description();
-    }
-
-    public boolean isHidden() {
-        return command.getClass().getAnnotation(BotCommand.class).hidden();
     }
 
     public InvocationResult invoke(CommandContext context) {
