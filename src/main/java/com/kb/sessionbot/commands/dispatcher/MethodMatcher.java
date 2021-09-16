@@ -8,6 +8,7 @@ import com.kb.sessionbot.model.ParameterDescriptor;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Parameter;
 import java.util.*;
@@ -17,7 +18,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class MethodMatcher {
-    private static final String PLACEHOLDER_START = "${";
+    private static final String PLACEHOLDER_START = "{";
     private static final String PLACEHOLDER_FINISH = "}";
     private Map<String, MethodDescriptor> invokerMethods;
 
@@ -27,47 +28,50 @@ public class MethodMatcher {
             .peek(method -> log.debug("Find OperationMethod {} for class {}.", method, command.getClass()))
             .map(method -> {
                 var arguments = method.getAnnotation(CommandMethod.class).arguments();
+                var builder = MethodDescriptor.builder()
+                    .method(method)
+                    .arguments(arguments);
+
+                if (StringUtils.hasText(arguments)) {
+                    var template = CommandParser.create(arguments).parseAnswers();
+                    var placeholders = new HashMap<String, Integer>();
+                    for (int index = 0; index < template.size(); index++) {
+                        var value = template.get(index);
+                        if (isPlaceHolder(value)) {
+                            value = value.substring(PLACEHOLDER_START.length(), value.length() - PLACEHOLDER_FINISH.length());
+                            placeholders.put(value, index);
+                        }
+                    }
+                    builder.template(template).placeholderIndexes(placeholders);
+                } else {
+                    builder.template(Collections.emptyList()).placeholderIndexes(Collections.emptyMap());
+                }
+
                 var parameters = Arrays.stream(method.getParameters())
                     .map(ParameterDescriptor::handleParameter)
                     .map(ParameterDescriptor.ParameterDescriptorBuilder::build)
                     .collect(Collectors.toList());
 
-                var template = CommandParser.create(method.getAnnotation(CommandMethod.class).arguments()).parseAnswers();
-                var placeholders = new HashMap<String, Integer>();
-                for (int index = 0; index < template.size(); index++) {
-                    var value = template.get(index);
-                    if (isPlaceHolder(value)) {
-                        value = value.substring(PLACEHOLDER_START.length(), value.length() - PLACEHOLDER_FINISH.length());
-                        placeholders.put(value, index);
-                    }
-                }
-                return MethodDescriptor.builder()
-                    .method(method)
-                    .arguments(arguments)
-                    .template(template)
-                    .placeholderIndexes(placeholders)
-                    .parameters(parameters)
-                    .build();
+                return builder.parameters(parameters).build();
             })
             .collect(Collectors.toMap(MethodDescriptor::getArguments, Function.identity()));
 
-        if (methods.containsKey("") && methods.keySet().size() > 1) {
-            throw new RuntimeException("Only one method can be defined in Command with default method.");
-        }
         return new MethodMatcher(methods);
     }
 
     public Optional<MethodDescriptor> getMatchingMethod(CommandContext commandContext) {
         var defaultMethod = invokerMethods.get("");
-        if (defaultMethod != null) {
+        var arguments = commandContext.getAnswers();
+        if (defaultMethod != null && arguments.isEmpty()) {
             return Optional.of(defaultMethod);
         }
-        var arguments = commandContext.getAnswers();
 
         return invokerMethods.values()
             .stream()
             .filter(methodDescriptor -> arguments.size() <= methodDescriptor.getTemplate().size())
-            .sorted(Comparator.comparing(methodDescriptor -> methodDescriptor.getTemplate().size()))
+            .sorted(
+                Comparator.comparingInt((MethodDescriptor methodDescriptor) -> methodDescriptor.getTemplate().size())
+            )
             .filter(methodDescriptor -> isMethodMatches(methodDescriptor.getTemplate(), arguments))
             .findFirst();
     }

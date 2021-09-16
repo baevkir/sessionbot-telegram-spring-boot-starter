@@ -19,6 +19,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+import reactor.util.retry.Retry;
 
 import javax.annotation.PostConstruct;
 
@@ -76,9 +77,9 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
                 updatesSink.asFlux()
                     .map(UpdateWrapper::wrap)
                     .groupBy(UpdateWrapper::getChatId)
-                    .flatMap(this::handleUpdates)
-                    .onErrorResume(errorHandler::handle)
+                    .flatMap(updates -> this.handleUpdates(updates).onErrorResume(errorHandler::handle))
                     .mergeWith(messagesSink.asFlux())
+                    .retry()
             ).subscribe(this::executeMessage);
     }
 

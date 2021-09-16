@@ -164,7 +164,9 @@ public class CommandsDispatcher {
             invocationResult.invocationArgument = getDefaultRenderer().render(
                 ParameterRequest.builder()
                     .context(commandContext)
+                    .required(true)
                     .text(String.format("Опции %s не поддерживаются для команды %s", options, commandContext.getCommand()))
+                    .parameterType(String.class)
                     .build()
             );
             return null;

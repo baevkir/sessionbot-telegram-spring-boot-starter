@@ -39,7 +39,7 @@ public class CommandBuilder {
     }
 
     public CommandBuilder addAnswers(List<String> answers) {
-        answers.addAll(answers);
+        this.answers.addAll(answers);
         return this;
     }
 
