@@ -1,22 +1,16 @@
 package com.kb.sessionbot.model;
 
-import com.kb.sessionbot.commands.CommandConstants;
-import com.kb.sessionbot.commands.MessageDescriptor;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.BooleanUtils;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
 
 import java.util.*;
-
-import static com.kb.sessionbot.commands.CommandConstants.COMMAND_START;
-import static com.kb.sessionbot.commands.CommandConstants.DYNAMIC_PARAMETERS_SEPARATOR;
 
 @Slf4j
 @Getter
@@ -53,14 +47,6 @@ public class UpdateWrapper {
         return messageDescriptor.getCommand();
     }
 
-    public boolean needRefreshContext() {
-        return messageDescriptor.needRefreshContext();
-    }
-
-    public boolean scipAnswer() {
-        return messageDescriptor.canScipAnswer();
-    }
-
     public User getFrom() {
         return Optional.ofNullable(update.getMessage())
             .map(Message::getFrom)
@@ -79,7 +65,7 @@ public class UpdateWrapper {
             .map(CallbackQuery::getMessage);
     }
 
-    public Map<String, String> getDynamicParams() {
+    public DynamicParameters getDynamicParams() {
         return messageDescriptor.getDynamicParams();
     }
 

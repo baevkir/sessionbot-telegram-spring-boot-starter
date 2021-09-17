@@ -90,7 +90,7 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
                 if (update.isCommand()) {
                     return CommandContext.create(update);
                 }
-                if (update.needRefreshContext() && !context.isEmpty()) {
+                if (update.getDynamicParams().needRefreshContext() && !context.isEmpty()) {
                     return CommandContext.create(context.getCommandUpdate()).addUpdate(update);
                 }
                 return context.addUpdate(update);

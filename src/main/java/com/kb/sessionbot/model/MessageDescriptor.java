@@ -1,4 +1,4 @@
-package com.kb.sessionbot.commands;
+package com.kb.sessionbot.model;
 
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -22,7 +22,7 @@ import static com.kb.sessionbot.commands.CommandConstants.*;
 public class MessageDescriptor {
     private String command;
     private List<String> answers;
-    private Map<String, String> dynamicParams;
+    private DynamicParameters dynamicParams;
 
     public static MessageDescriptor parse(String text) {
         Assert.isTrue(StringUtils.hasText(text), "text is empty");
@@ -37,22 +37,6 @@ public class MessageDescriptor {
         return command != null;
     }
 
-    public boolean needRefreshContext() {
-        return dynamicParams.containsKey(REFRESH_CONTEXT_DYNAMIC_PARAM);
-    }
-
-    public boolean canScipAnswer() {
-        return BooleanUtils.toBoolean(getDynamicParams().getOrDefault(SCIP_ANSWER_DYNAMIC_PARAM, "false"));
-    }
-
-    public boolean commandApproved() {
-        return dynamicParams.containsKey(APPROVED_DYNAMIC_PARAM);
-    }
-
-    public String getInitiator() {
-        return dynamicParams.get(INITIATOR_DYNAMIC_PARAM);
-    }
-
     private static String parseCommand(String text) {
         if (text.startsWith(COMMAND_START)) {
             String commandText = text.substring(1);
@@ -60,7 +44,7 @@ public class MessageDescriptor {
                 commandText = commandText.substring(0, commandText.indexOf(DYNAMIC_PARAMETERS_SEPARATOR));
             }
             String[] commandSplit = commandText.split(COMMAND_PARAMETERS_SEPARATOR_REGEX);
-            return commandSplit[0];
+            return commandSplit[ 0 ];
         }
         return null;
     }
@@ -68,8 +52,8 @@ public class MessageDescriptor {
     private static List<String> parseAnswers(String text) {
         if (!text.startsWith(COMMAND_START)) {
             var paramsSplit = text.split(DYNAMIC_PARAMETERS_SEPARATOR);
-            if (StringUtils.hasText(paramsSplit[0])) {
-                return Arrays.asList(paramsSplit[0].split(PARAMETER_SEPARATOR));
+            if (StringUtils.hasText(paramsSplit[ 0 ])) {
+                return Arrays.asList(paramsSplit[ 0 ].split(PARAMETER_SEPARATOR));
             }
             return Collections.emptyList();
         }
@@ -77,18 +61,20 @@ public class MessageDescriptor {
         if (commandSplit.length == 1) {
             return Collections.emptyList();
         }
-        var paramsSplit = commandSplit[1].split(DYNAMIC_PARAMETERS_SEPARATOR);
-        return Arrays.asList(paramsSplit[0].split(PARAMETER_SEPARATOR));
+        var paramsSplit = commandSplit[ 1 ].split(DYNAMIC_PARAMETERS_SEPARATOR);
+        return Arrays.asList(paramsSplit[ 0 ].split(PARAMETER_SEPARATOR));
     }
 
-    private static Map<String, String> parseDynamicParams(String text) {
+    private static DynamicParameters parseDynamicParams(String text) {
         var paramsSplit = text.split(DYNAMIC_PARAMETERS_SEPARATOR);
         if (paramsSplit.length == 1) {
-            return Collections.emptyMap();
+            return DynamicParameters.empty();
         }
-        return Arrays.stream(paramsSplit[1].split(PARAMETER_SEPARATOR))
-            .map(params -> params.split(KEY_VALUE_SEPARATOR))
-            .collect(Collectors.toMap(params -> params[0], params -> params.length > 1 ? params[1] : ""));
+        return DynamicParameters.create(
+            Arrays.stream(paramsSplit[ 1 ].split(PARAMETER_SEPARATOR))
+                .map(params -> params.split(KEY_VALUE_SEPARATOR))
+                .collect(Collectors.toMap(params -> params[ 0 ], params -> params.length > 1 ? params[ 1 ] : ""))
+        );
     }
 
 

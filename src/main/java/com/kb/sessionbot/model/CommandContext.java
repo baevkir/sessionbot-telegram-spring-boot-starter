@@ -1,6 +1,5 @@
 package com.kb.sessionbot.model;
 
-import com.kb.sessionbot.commands.MessageDescriptor;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -77,7 +76,7 @@ public class CommandContext {
         return Collections.unmodifiableList(result);
     }
 
-    public Map<String, String> getDynamicParams() {
+    public DynamicParameters getDynamicParams() {
         return getCurrentUpdate().orElse(commandUpdate).getDynamicParams();
     }
 }

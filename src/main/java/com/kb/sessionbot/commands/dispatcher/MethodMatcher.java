@@ -1,6 +1,6 @@
 package com.kb.sessionbot.commands.dispatcher;
 
-import com.kb.sessionbot.commands.MessageDescriptor;
+import com.kb.sessionbot.model.MessageDescriptor;
 import com.kb.sessionbot.commands.dispatcher.annotations.CommandMethod;
 import com.kb.sessionbot.model.CommandContext;
 import com.kb.sessionbot.model.MethodDescriptor;

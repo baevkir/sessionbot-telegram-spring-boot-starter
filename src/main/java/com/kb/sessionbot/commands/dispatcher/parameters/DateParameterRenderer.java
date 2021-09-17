@@ -25,13 +25,13 @@ public class DateParameterRenderer implements ParameterRenderer {
     @Override
     public Publisher<? extends PartialBotApiMethod<?>> render(ParameterRequest parameterRequest) {
         return Mono.fromSupplier(() -> {
-            var date = Optional.ofNullable(parameterRequest.getContext().getDynamicParams().get(DATE_PROPERTY))
+            var date = Optional.ofNullable(parameterRequest.getContext().getDynamicParams().getParam(DATE_PROPERTY))
                 .map(LocalDate::parse)
                 .orElseGet(LocalDate::now)
                 .withDayOfMonth(1);
 
             var calbackMessage = parameterRequest.getContext().getCurrentUpdate().flatMap(UpdateWrapper::getCallbackMessage).orElse(null);
-            if (parameterRequest.getContext().getDynamicParams().containsKey(CONTINUE_CHOOSE) && calbackMessage != null) {
+            if (parameterRequest.getContext().getDynamicParams().hasParam(CONTINUE_CHOOSE) && calbackMessage != null) {
                 return EditMessageReplyMarkup.builder()
                     .chatId(parameterRequest.getContext().getChatId())
                     .messageId(calbackMessage.getMessageId())

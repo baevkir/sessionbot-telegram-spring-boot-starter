@@ -9,10 +9,7 @@ import com.kb.sessionbot.commands.dispatcher.annotations.Parameter;
 import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
 import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRequest;
 import com.kb.sessionbot.errors.exception.BotCommandException;
-import com.kb.sessionbot.model.CommandContext;
-import com.kb.sessionbot.model.MethodDescriptor;
-import com.kb.sessionbot.model.ParameterDescriptor;
-import com.kb.sessionbot.model.UpdateWrapper;
+import com.kb.sessionbot.model.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -80,7 +77,7 @@ public class CommandsDispatcher {
                         invocationResult.addArgument(argument.get());
                         args.add(argument.get());
                     } else {
-                        if (!parameter.isRequired() && context.getCurrentUpdate().map(UpdateWrapper::scipAnswer).orElse(false)) {
+                        if (!parameter.isRequired() && context.getCurrentUpdate().map(update -> update.getDynamicParams().canScipAnswer()).orElse(false)) {
                             invocationResult.addArgument(null);
                             args.add(null);
                         } else {
@@ -109,6 +106,8 @@ public class CommandsDispatcher {
                     args.add(context.getCommandUpdate().getFrom());
                 } else if (String.class.equals(parameter.getParameterType()) && parameter.getName().equals("chatId")) {
                     args.add(context.getChatId());
+                } else if (DynamicParameters.class.equals(parameter.getParameterType())) {
+                    args.add(context.getDynamicParams());
                 } else if (CommandContext.class.equals(parameter.getParameterType())) {
                     args.add(context);
                 }

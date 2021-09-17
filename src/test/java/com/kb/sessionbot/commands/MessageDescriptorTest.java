@@ -1,6 +1,7 @@
 package com.kb.sessionbot.commands;
 
 
+import com.kb.sessionbot.model.MessageDescriptor;
 import org.junit.jupiter.api.Test;
 
 import static com.kb.sessionbot.commands.CommandConstants.*;
@@ -62,7 +63,7 @@ class MessageDescriptorTest {
         assertThat(messageDescriptor.isCommand()).isTrue();
         assertThat(messageDescriptor.getCommand()).isEqualTo(TEST_COMMAND);
         assertThat(messageDescriptor.getAnswers()).hasSize(2).contains(TEST_ARGUMENT1, TEST_ARGUMENT2);
-        assertThat(messageDescriptor.getDynamicParams()).hasSize(1).containsEntry(TEST_RENDERING_PARAMS_KEY, TEST_RENDERING_PARAMS_VALUE);
+        assertThat(messageDescriptor.getDynamicParams().getParams()).hasSize(1).containsEntry(TEST_RENDERING_PARAMS_KEY, TEST_RENDERING_PARAMS_VALUE);
     }
 
     @Test
@@ -72,7 +73,7 @@ class MessageDescriptorTest {
         assertThat(messageDescriptor.isCommand()).isTrue();
         assertThat(messageDescriptor.getCommand()).isEqualTo(TEST_COMMAND);
         assertThat(messageDescriptor.getAnswers()).hasSize(2).contains(TEST_ARGUMENT1, TEST_ARGUMENT2);
-        assertThat(messageDescriptor.getDynamicParams()).isEmpty();
+        assertThat(messageDescriptor.getDynamicParams().getParams()).isEmpty();
     }
 
     @Test
@@ -82,7 +83,7 @@ class MessageDescriptorTest {
         assertThat(messageDescriptor.isCommand()).isTrue();
         assertThat(messageDescriptor.getCommand()).isEqualTo(TEST_COMMAND);
         assertThat(messageDescriptor.getAnswers()).isNotEmpty();
-        assertThat(messageDescriptor.getDynamicParams()).hasSize(1).containsEntry(TEST_RENDERING_PARAMS_KEY, TEST_RENDERING_PARAMS_VALUE);
+        assertThat(messageDescriptor.getDynamicParams().getParams()).hasSize(1).containsEntry(TEST_RENDERING_PARAMS_KEY, TEST_RENDERING_PARAMS_VALUE);
     }
 
     @Test
@@ -92,7 +93,8 @@ class MessageDescriptorTest {
         assertThat(messageDescriptor.isCommand()).isTrue();
         assertThat(messageDescriptor.getCommand()).isEqualTo(TEST_COMMAND);
         assertThat(messageDescriptor.getAnswers()).isEmpty();
-        assertThat(messageDescriptor.getDynamicParams()).hasSize(1).containsEntry(TEST_RENDERING_PARAMS_KEY, TEST_RENDERING_PARAMS_VALUE);
+        assertThat(messageDescriptor.getDynamicParams().getParams()).hasSize(1).containsEntry(TEST_RENDERING_PARAMS_KEY, TEST_RENDERING_PARAMS_VALUE);
+
     }
 
     @Test
@@ -102,6 +104,6 @@ class MessageDescriptorTest {
         assertThat(messageDescriptor.isCommand()).isFalse();
         assertThat(messageDescriptor.getCommand()).isNull();
         assertThat(messageDescriptor.getAnswers()).isEmpty();
-        assertThat(messageDescriptor.getDynamicParams()).hasSize(1).containsEntry(TEST_RENDERING_PARAMS_KEY, TEST_RENDERING_PARAMS_VALUE);
+        assertThat(messageDescriptor.getDynamicParams().getParams()).hasSize(1).containsEntry(TEST_RENDERING_PARAMS_KEY, TEST_RENDERING_PARAMS_VALUE);
     }
 }
