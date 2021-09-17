@@ -18,8 +18,7 @@ import static com.kb.sessionbot.commands.CommandConstants.*;
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class CommandBuilder {
-    public static final String REFRESH_CONTEXT_PARAM = "refreshContext";
-    public static final String SCIP_ANSWER_PARAM = "scipAnswer";
+
     private String command;
     private final List<String> answers = new ArrayList<>();
     private final Map<String, String> params = new HashMap<>();
@@ -54,11 +53,19 @@ public class CommandBuilder {
     }
 
     public CommandBuilder refreshContext() {
-        return addParam(REFRESH_CONTEXT_PARAM);
+        return addParam(REFRESH_CONTEXT_DYNAMIC_PARAM);
     }
 
     public CommandBuilder scipAnswer() {
-        return addParam(SCIP_ANSWER_PARAM);
+        return addParam(SCIP_ANSWER_DYNAMIC_PARAM);
+    }
+
+    public CommandBuilder commandApproved() {
+        return addParam(APPROVED_DYNAMIC_PARAM);
+    }
+
+    public CommandBuilder setInitiator(String name) {
+        return addParam(INITIATOR_DYNAMIC_PARAM, name);
     }
 
     public String build() {

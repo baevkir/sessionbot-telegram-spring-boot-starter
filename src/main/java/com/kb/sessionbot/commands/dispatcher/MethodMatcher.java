@@ -1,6 +1,6 @@
 package com.kb.sessionbot.commands.dispatcher;
 
-import com.kb.sessionbot.commands.CommandParser;
+import com.kb.sessionbot.commands.MessageDescriptor;
 import com.kb.sessionbot.commands.dispatcher.annotations.CommandMethod;
 import com.kb.sessionbot.model.CommandContext;
 import com.kb.sessionbot.model.MethodDescriptor;
@@ -10,7 +10,6 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 
-import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -33,7 +32,7 @@ public class MethodMatcher {
                     .arguments(arguments);
 
                 if (StringUtils.hasText(arguments)) {
-                    var template = CommandParser.create(arguments).parseAnswers();
+                    var template = MessageDescriptor.parse(arguments).getAnswers();
                     var placeholders = new HashMap<String, Integer>();
                     for (int index = 0; index < template.size(); index++) {
                         var value = template.get(index);

@@ -1,13 +1,11 @@
 package com.kb.sessionbot.model;
 
-import com.google.common.collect.ImmutableList;
-import com.kb.sessionbot.commands.CommandParser;
+import com.kb.sessionbot.commands.MessageDescriptor;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.springframework.util.Assert;
-import org.telegram.telegrambots.meta.api.objects.Message;
 
 import java.util.*;
 
@@ -17,7 +15,6 @@ import java.util.*;
 public class CommandContext {
 
     private UpdateWrapper commandUpdate;
-    private String command;
     private final Deque<UpdateWrapper> updates = new LinkedList<>();
     private final List<String> answers = Collections.synchronizedList(new ArrayList<>());
 
@@ -25,16 +22,16 @@ public class CommandContext {
         Assert.isTrue(commandUpdate.isCommand(), "Context should be created only for command.");
         CommandContext context = new CommandContext();
         context.commandUpdate = commandUpdate;
-
-        CommandParser parser = CommandParser.create(commandUpdate.getText().orElse(""));
-        context.command = parser.parseCommand();
-        context.answers.addAll(parser.parseAnswers());
-
+        context.answers.addAll(commandUpdate.getAnswers());
         return context;
     }
 
     public static CommandContext empty() {
         return new CommandContext();
+    }
+
+    public String getCommand() {
+        return commandUpdate.getCommand();
     }
 
     public CommandContext addAnswer(String answer) {
@@ -54,9 +51,7 @@ public class CommandContext {
 
     public List<String> getPendingArguments() {
         return getCurrentUpdate()
-            .flatMap(UpdateWrapper::getArguments)
-            .map(CommandParser::create)
-            .map(CommandParser::parseAnswers)
+            .map(UpdateWrapper::getAnswers)
             .orElse(Collections.emptyList());
     }
 

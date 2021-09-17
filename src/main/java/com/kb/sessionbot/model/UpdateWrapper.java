@@ -1,7 +1,7 @@
 package com.kb.sessionbot.model;
 
-import com.kb.sessionbot.commands.CommandBuilder;
-import com.kb.sessionbot.commands.CommandParser;
+import com.kb.sessionbot.commands.CommandConstants;
+import com.kb.sessionbot.commands.MessageDescriptor;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -13,10 +13,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 import static com.kb.sessionbot.commands.CommandConstants.COMMAND_START;
 import static com.kb.sessionbot.commands.CommandConstants.DYNAMIC_PARAMETERS_SEPARATOR;
@@ -27,9 +24,13 @@ import static com.kb.sessionbot.commands.CommandConstants.DYNAMIC_PARAMETERS_SEP
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class UpdateWrapper {
     private Update update;
+    private MessageDescriptor messageDescriptor;
 
     public static UpdateWrapper wrap(Update update) {
-        return new UpdateWrapper(Objects.requireNonNull(update, "Update is null."));
+        return new UpdateWrapper(
+            Objects.requireNonNull(update, "Update is null."),
+            MessageDescriptor.parse(getText(update).orElse(""))
+        );
     }
 
     public String getChatId() {
@@ -45,17 +46,21 @@ public class UpdateWrapper {
     }
 
     public boolean isCommand() {
-        return (update.hasMessage() && update.getMessage().isCommand()) ||
-            getText().map(text -> text.startsWith(COMMAND_START)).orElse(false);
+        return (update.hasMessage() && update.getMessage().isCommand()) || messageDescriptor.isCommand();
+    }
+
+    public String getCommand() {
+        return messageDescriptor.getCommand();
     }
 
     public boolean needRefreshContext() {
-        return getDynamicParams().containsKey(CommandBuilder.REFRESH_CONTEXT_PARAM);
+        return messageDescriptor.needRefreshContext();
     }
 
     public boolean scipAnswer() {
-        return BooleanUtils.toBoolean(getDynamicParams().getOrDefault(CommandBuilder.SCIP_ANSWER_PARAM, "false"));
+        return messageDescriptor.canScipAnswer();
     }
+
     public User getFrom() {
         return Optional.ofNullable(update.getMessage())
             .map(Message::getFrom)
@@ -63,8 +68,8 @@ public class UpdateWrapper {
             .orElse(null);
     }
 
-    public Optional<String> getArguments() {
-        return getText().filter(text -> !text.startsWith(DYNAMIC_PARAMETERS_SEPARATOR));
+    public List<String> getAnswers() {
+        return messageDescriptor.getAnswers();
     }
 
     public Optional<Message> getCallbackMessage() {
@@ -75,12 +80,10 @@ public class UpdateWrapper {
     }
 
     public Map<String, String> getDynamicParams() {
-        return getText()
-            .map(text -> CommandParser.create(text).parseDynamicParams())
-            .orElse(Collections.emptyMap());
+        return messageDescriptor.getDynamicParams();
     }
 
-    public Optional<String> getText() {
+    private static Optional<String> getText(Update update) {
         if (update.hasMessage()) {
             return Optional.of(update.getMessage().getText());
         }
