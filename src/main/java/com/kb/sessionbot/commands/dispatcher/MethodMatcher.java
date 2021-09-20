@@ -77,7 +77,7 @@ public class MethodMatcher {
     }
 
     private int getMatchingScore(List<String> template, List<String> args) {
-        int score = Integer.MAX_VALUE;
+        int score = 0;
         for (int index = 0; index < template.size(); index++) {
             var templateArg = template.get(index);
             if (isPlaceHolder(templateArg)) {
@@ -91,6 +91,7 @@ public class MethodMatcher {
             if (!templateArg.equals(arg)) {
                 return Integer.MIN_VALUE;
             }
+            score += 10;
         }
         return score;
     }

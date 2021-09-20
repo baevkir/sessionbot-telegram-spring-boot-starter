@@ -6,6 +6,7 @@ import org.reactivestreams.Publisher;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 
 import java.time.LocalDate;
+import java.util.Objects;
 
 @Slf4j
 @AllArgsConstructor
@@ -16,10 +17,10 @@ public class ParameterRendererFactory implements ParameterRenderer{
 
     @Override
     public Publisher<? extends PartialBotApiMethod<?>> render(ParameterRequest parameterRequest) {
-        if (LocalDate.class.isAssignableFrom(parameterRequest.getParameterType())){
+        if (LocalDate.class == parameterRequest.getParameterType()){
             return dateParameterRenderer.render(parameterRequest);
         }
-        if (Boolean.class.isAssignableFrom(parameterRequest.getParameterType())) {
+        if (Boolean.class == parameterRequest.getParameterType() || Boolean.TYPE == parameterRequest.getParameterType()) {
             return booleanParameterRenderer.render(parameterRequest);
         }
         return textParameterRenderer.render(parameterRequest);

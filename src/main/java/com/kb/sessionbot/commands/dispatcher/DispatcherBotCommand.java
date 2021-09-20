@@ -11,6 +11,8 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 @Slf4j
 public class DispatcherBotCommand implements IBotCommand {
 
@@ -25,7 +27,12 @@ public class DispatcherBotCommand implements IBotCommand {
         if (invocationResult.hasErrors()) {
             return Mono.error(invocationResult.getInvocationError());
         }
-        commandContext.getPendingArguments().forEach(commandContext::addAnswer);
+        var pendingArguments = commandContext.getPendingArguments();
+        if (pendingArguments.isEmpty() && commandContext.getDynamicParams().canScipAnswer()) {
+            commandContext.addAnswer("");
+        } else {
+            pendingArguments.forEach(commandContext::addAnswer);
+        }
         if (invocationResult.getInvocationArgument() != null) {
             return invocationResult.getInvocationArgument();
         }

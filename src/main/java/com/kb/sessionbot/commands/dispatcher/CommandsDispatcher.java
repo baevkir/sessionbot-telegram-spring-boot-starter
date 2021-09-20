@@ -140,7 +140,8 @@ public class CommandsDispatcher {
             () -> String.format("Placeholder %s is not defined in %s", parameter.getName(), methodDescriptor.getArguments())
         );
         if (argumentIndex < answers.size()) {
-             return Optional.of(mapper.convertValue(answers.get(argumentIndex), parameter.getParameterType()));
+            return Optional.ofNullable(answers.get(argumentIndex))
+                .map(answer -> mapper.convertValue(answer, parameter.getParameterType()));
         }
         return Optional.empty();
     }
