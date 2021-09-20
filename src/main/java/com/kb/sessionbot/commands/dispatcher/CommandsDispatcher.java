@@ -5,7 +5,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.collect.Sets;
 import com.kb.sessionbot.commands.CommandBuilder;
 import com.kb.sessionbot.commands.dispatcher.annotations.BotCommand;
-import com.kb.sessionbot.commands.dispatcher.annotations.Parameter;
 import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
 import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRequest;
 import com.kb.sessionbot.errors.exception.BotCommandException;
@@ -83,11 +82,11 @@ public class CommandsDispatcher {
                         } else {
                             invocationResult.invocationArgument = getRenderer(parameter).render(
                                 ParameterRequest.builder()
-                                    .text(String.format("Пожалуйста укажите поле '%s'.", parameter.getName()))
+                                    .text(String.format("Пожалуйста укажите поле '%s'.", parameter.getDisplayName()))
                                     .parameterType(parameter.getParameterType())
                                     .required(parameter.isRequired())
                                     .context(context)
-                                    .options(Sets.newHashSet(parameter.getOptions()))
+                                    .options(parameter.getOptions())
                                     .build()
                             );
                             return invocationResult;

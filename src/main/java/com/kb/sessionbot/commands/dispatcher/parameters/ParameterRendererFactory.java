@@ -12,11 +12,15 @@ import java.time.LocalDate;
 public class ParameterRendererFactory implements ParameterRenderer{
     private final ParameterRenderer textParameterRenderer;
     private final ParameterRenderer dateParameterRenderer;
+    private final ParameterRenderer booleanParameterRenderer;
 
     @Override
     public Publisher<? extends PartialBotApiMethod<?>> render(ParameterRequest parameterRequest) {
         if (LocalDate.class.isAssignableFrom(parameterRequest.getParameterType())){
             return dateParameterRenderer.render(parameterRequest);
+        }
+        if (Boolean.class.isAssignableFrom(parameterRequest.getParameterType())) {
+            return booleanParameterRenderer.render(parameterRequest);
         }
         return textParameterRenderer.render(parameterRequest);
     }

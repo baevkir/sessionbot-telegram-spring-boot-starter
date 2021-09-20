@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +36,20 @@ public class CommandBuilder {
 
     public CommandBuilder addAnswer(String answer) {
         answers.add(answer);
+        return this;
+    }
+
+    public CommandBuilder addAnswer(boolean answer) {
+        answers.add(Boolean.toString(answer));
+        return this;
+    }
+
+    public CommandBuilder addAnswer(LocalDate answer) {
+        if (answer == null) {
+            answers.add(null);
+        } else {
+            answers.add(answer.format(DateTimeFormatter.ISO_DATE));
+        }
         return this;
     }
 

@@ -1,5 +1,6 @@
 package com.kb.sessionbot.model;
 
+import com.kb.sessionbot.commands.dispatcher.annotations.RenderingOption;
 import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -9,6 +10,7 @@ import lombok.Getter;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Builder
 @Getter
@@ -22,7 +24,7 @@ public class ParameterDescriptor {
     private boolean required;
     private String renderer;
     private Class<? extends ParameterRenderer> rendererType;
-    private List<String> options;
+    private List<Option> options;
 
     public static ParameterDescriptorBuilder handleParameter(Parameter parameter) {
         var builder = ParameterDescriptor.builder()
@@ -40,7 +42,7 @@ public class ParameterDescriptor {
                 .required(parameterAnnotation.required())
                 .renderer(parameterAnnotation.rendering().name())
                 .rendererType(parameterAnnotation.rendering().type())
-                .options(Arrays.asList(parameterAnnotation.rendering().options()));
+                .options(getRenderingOptions(parameterAnnotation.rendering().options()));
 
         } else {
             builder.annotated(false)
@@ -49,5 +51,16 @@ public class ParameterDescriptor {
                 .required(true);
         }
         return builder;
+    }
+
+    private static List<Option> getRenderingOptions(RenderingOption[] renderingOptions) {
+        return Arrays.stream(renderingOptions)
+            .map(option ->
+                Option.builder()
+                    .key(option.value())
+                    .value(option.displayValue() == null ? option.value() : option.displayValue())
+                    .build()
+            ).collect(Collectors.toList());
+
     }
 }

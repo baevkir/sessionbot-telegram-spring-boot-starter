@@ -41,7 +41,7 @@ public class DynamicParameters {
     }
 
     public boolean canScipAnswer() {
-        return BooleanUtils.toBoolean(params.getOrDefault(SCIP_ANSWER_DYNAMIC_PARAM, "false"));
+        return params.containsKey(SCIP_ANSWER_DYNAMIC_PARAM);
     }
 
     public boolean commandApproved() {

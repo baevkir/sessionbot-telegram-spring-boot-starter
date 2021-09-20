@@ -10,7 +10,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,28 +18,18 @@ import java.util.stream.Collectors;
 import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 import static org.apache.commons.lang3.ObjectUtils.isNotEmpty;
 
-public class TextParameterRenderer implements ParameterRenderer {
+public class BooleanParameterRenderer implements ParameterRenderer {
     @Override
     public Publisher<? extends PartialBotApiMethod<?>> render(ParameterRequest parameterRequest) {
         return Mono.fromSupplier(() -> {
-            var messageBuilder = SendMessage.builder()
-                .chatId(parameterRequest.getContext().getChatId())
-                .text(parameterRequest.getText())
-                .parseMode(ParseMode.HTML);
-
             List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-            if (!isEmpty(parameterRequest.getOptions())) {
-                List<InlineKeyboardButton> rowInline = parameterRequest.getOptions().stream()
-                    .map(option ->
-                        InlineKeyboardButton.builder()
-                            .text(option.getValue())
-                            .callbackData(option.getKey())
-                            .build()
-                    )
-                    .collect(Collectors.toList());
+            List<InlineKeyboardButton> rowInline = Arrays.asList(
+                InlineKeyboardButton.builder().text("Да").callbackData(Boolean.toString(true)).build(),
+                InlineKeyboardButton.builder().text("Нет").callbackData(Boolean.toString(false)).build()
+                );
 
-                rowsInline.add(rowInline);
-            }
+            rowsInline.add(rowInline);
+
             if (!parameterRequest.isRequired()) {
                 rowsInline.add(
                     Collections.singletonList(InlineKeyboardButton.builder()
@@ -48,10 +38,12 @@ public class TextParameterRenderer implements ParameterRenderer {
                         .build())
                 );
             }
-            if (isNotEmpty(rowsInline)) {
-                messageBuilder.replyMarkup(InlineKeyboardMarkup.builder().keyboard(rowsInline).build());
-            }
-            return messageBuilder.build();
+            return SendMessage.builder()
+                .chatId(parameterRequest.getContext().getChatId())
+                .text(parameterRequest.getText())
+                .parseMode(ParseMode.HTML)
+                .replyMarkup(InlineKeyboardMarkup.builder().keyboard(rowsInline).build())
+                .build();
         });
     }
 }

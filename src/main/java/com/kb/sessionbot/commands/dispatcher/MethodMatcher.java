@@ -9,6 +9,8 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 import java.util.*;
 import java.util.function.Function;
@@ -68,25 +70,29 @@ public class MethodMatcher {
         return invokerMethods.values()
             .stream()
             .filter(methodDescriptor -> arguments.size() <= methodDescriptor.getTemplate().size())
-            .sorted(
-                Comparator.comparingInt((MethodDescriptor methodDescriptor) -> methodDescriptor.getTemplate().size())
-            )
-            .filter(methodDescriptor -> isMethodMatches(methodDescriptor.getTemplate(), arguments))
-            .findFirst();
+            .map(methodDescriptor -> Tuples.of(getMatchingScore(methodDescriptor.getTemplate(), arguments), methodDescriptor))
+            .filter(tuple -> tuple.getT1() != Integer.MIN_VALUE)
+            .max(Comparator.comparingInt(Tuple2::getT1))
+            .map(Tuple2::getT2);
     }
 
-    private boolean isMethodMatches(List<String> template, List<String> args) {
+    private int getMatchingScore(List<String> template, List<String> args) {
+        int score = Integer.MAX_VALUE;
         for (int index = 0; index < template.size(); index++) {
             var templateArg = template.get(index);
             if (isPlaceHolder(templateArg)) {
+                score--;
                 continue;
+            }
+            if (args.size() < index + 1) {
+                return Integer.MIN_VALUE;
             }
             var arg = args.get(index);
             if (!templateArg.equals(arg)) {
-                return false;
+                return Integer.MIN_VALUE;
             }
         }
-        return true;
+        return score;
     }
 
     private static boolean isPlaceHolder(String value) {
