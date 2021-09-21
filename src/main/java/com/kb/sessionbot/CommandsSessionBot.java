@@ -68,6 +68,7 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
     @PostConstruct
     public void init() {
         var setMyCommands = Flux.fromIterable(commandsFactory.getCommands())
+            .filter(command -> !command.hidden())
             .map(command -> BotCommand.builder().command(command.getCommandIdentifier()).description(command.getDescription()).build())
             .collectList()
             .map(commands -> SetMyCommands.builder().commands(commands).build());
