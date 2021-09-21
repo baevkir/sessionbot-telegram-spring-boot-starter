@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.zip.Deflater;
 
 import static com.kb.sessionbot.commands.CommandConstants.*;
 
@@ -36,6 +39,11 @@ public class CommandBuilder {
 
     public CommandBuilder addAnswer(String answer) {
         answers.add(answer);
+        return this;
+    }
+
+    public CommandBuilder addAnswer(Long answer) {
+        answers.add(String.valueOf(answer));
         return this;
     }
 
@@ -105,6 +113,9 @@ public class CommandBuilder {
                     return String.join(KEY_VALUE_SEPARATOR, values);
                 })
                 .collect(Collectors.joining(PARAMETER_SEPARATOR)));
+        }
+        if (result.toString().getBytes().length > 64) {
+          log.warn("Command length is greater then 64 bytes and cannot be applied to to callback data. "  + result);
         }
         return result.toString();
     }
