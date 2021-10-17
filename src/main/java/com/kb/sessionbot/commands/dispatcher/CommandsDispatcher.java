@@ -145,7 +145,7 @@ public class CommandsDispatcher {
                     if (answer == "null") {
                         return null;
                     }
-                    mapper.convertValue(answer, parameter.getParameterType())
+                    mapper.convertValue(answer, parameter.getParameterType());
                 });
         }
         return Optional.empty();
