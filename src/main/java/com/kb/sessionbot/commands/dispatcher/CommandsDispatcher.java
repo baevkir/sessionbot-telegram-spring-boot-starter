@@ -142,10 +142,10 @@ public class CommandsDispatcher {
         if (argumentIndex < answers.size()) {
             return Optional.ofNullable(answers.get(argumentIndex))
                 .map(answer -> {
-                    if (answer == "null") {
+                    if (answer.equals("null")) {
                         return null;
                     }
-                    mapper.convertValue(answer, parameter.getParameterType());
+                   return mapper.convertValue(answer, parameter.getParameterType());
                 });
         }
         return Optional.empty();
