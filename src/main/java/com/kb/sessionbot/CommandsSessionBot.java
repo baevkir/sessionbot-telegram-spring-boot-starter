@@ -101,10 +101,13 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
                 if (context.isEmpty()) {
                     return commandsFactory.getHelpCommand().process(context);
                 }
-                if (!authInterceptor.intercept(context)) {
-                    return Flux.error(new BotAuthException(context, "User is unauthorized to use bot."));
-                }
-                return commandsFactory.getCommand(context.getCommand()).process(context);
+                return authInterceptor.intercept(context)
+                    .flatMapMany(result -> {
+                        if (!result) {
+                            return Flux.error(new BotAuthException(context, "User is unauthorized to use bot."));
+                        }
+                        return commandsFactory.getCommand(context.getCommand()).process(context);
+                    });
             });
     }
 

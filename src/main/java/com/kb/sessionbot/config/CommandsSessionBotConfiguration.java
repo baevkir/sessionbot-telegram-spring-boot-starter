@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Configuration;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -113,6 +114,6 @@ public class CommandsSessionBotConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public AuthInterceptor authInterceptor() {
-        return request -> true;
+        return request -> Mono.just(true);
     }
 }

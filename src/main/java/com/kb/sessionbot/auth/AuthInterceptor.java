@@ -1,7 +1,8 @@
 package com.kb.sessionbot.auth;
 
 import com.kb.sessionbot.model.CommandContext;
+import reactor.core.publisher.Mono;
 
 public interface AuthInterceptor {
-    boolean intercept(CommandContext context);
+    Mono<Boolean> intercept(CommandContext context);
 }
