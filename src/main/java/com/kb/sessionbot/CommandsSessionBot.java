@@ -104,7 +104,7 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
                 return authInterceptor.intercept(context)
                     .flatMapMany(result -> {
                         if (!result) {
-                            return Flux.error(new BotAuthException(context, "User is unauthorized to use bot."));
+                            return Flux.error(new BotAuthException(context, "User " + context.getCommandUpdate().getFrom().getUserName()+ " is unauthorized to use bot."));
                         }
                         return commandsFactory.getCommand(context.getCommand()).process(context);
                     });
