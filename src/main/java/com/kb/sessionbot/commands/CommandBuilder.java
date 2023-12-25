@@ -80,8 +80,8 @@ public class CommandBuilder {
         return addParam(REFRESH_CONTEXT_DYNAMIC_PARAM);
     }
 
-    public CommandBuilder scipAnswer() {
-        return addParam(SCIP_ANSWER_DYNAMIC_PARAM);
+    public CommandBuilder scipAnswer(int index) {
+        return addParam(SCIP_ANSWER_DYNAMIC_PARAM + index);
     }
 
     public CommandBuilder commandApproved() {

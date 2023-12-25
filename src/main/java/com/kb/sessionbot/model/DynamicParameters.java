@@ -40,8 +40,8 @@ public class DynamicParameters {
         return params.containsKey(REFRESH_CONTEXT_DYNAMIC_PARAM);
     }
 
-    public boolean canScipAnswer() {
-        return params.containsKey(SCIP_ANSWER_DYNAMIC_PARAM);
+    public boolean canScipAnswer(int index) {
+        return params.containsKey(SCIP_ANSWER_DYNAMIC_PARAM + index);
     }
 
     public boolean commandApproved() {

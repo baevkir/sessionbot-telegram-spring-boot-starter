@@ -71,17 +71,19 @@ public class CommandsDispatcher {
                 }
 
                 if (parameter.isAnnotated()) {
+                    var index = methodDescriptor.getPlaceholderIndexes().get(parameter.getName());
                     Optional<?> argument = getArgument(answers, methodDescriptor, parameter);
                     if (argument.isPresent()) {
                         invocationResult.addArgument(argument.get());
                         args.add(argument.get());
                     } else {
-                        if (!parameter.isRequired() && context.getCurrentUpdate().map(update -> update.getDynamicParams().canScipAnswer()).orElse(false)) {
+                        if (!parameter.isRequired() && context.getCurrentUpdate().map(update -> update.getDynamicParams().canScipAnswer(index)).orElse(false)) {
                             invocationResult.addArgument(null);
                             args.add(null);
                         } else {
                             invocationResult.invocationArgument = getRenderer(parameter).render(
                                 ParameterRequest.builder()
+                                    .index(index)
                                     .text(String.format("Пожалуйста укажите поле '%s'.", parameter.getDisplayName()))
                                     .parameterType(parameter.getParameterType())
                                     .required(parameter.isRequired())

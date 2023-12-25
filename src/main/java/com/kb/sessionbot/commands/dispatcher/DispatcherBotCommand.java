@@ -28,7 +28,7 @@ public class DispatcherBotCommand implements IBotCommand {
             return Mono.error(invocationResult.getInvocationError());
         }
         var pendingArguments = commandContext.getPendingArguments();
-        if (pendingArguments.isEmpty() && commandContext.getDynamicParams().canScipAnswer()) {
+        if (pendingArguments.isEmpty() && commandContext.getDynamicParams().canScipAnswer(0)) {
             commandContext.addAnswer("");
         } else {
             pendingArguments.forEach(commandContext::addAnswer);

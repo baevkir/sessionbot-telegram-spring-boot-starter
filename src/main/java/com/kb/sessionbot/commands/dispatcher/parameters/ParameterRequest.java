@@ -15,6 +15,7 @@ import java.util.Set;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ParameterRequest {
     private final CommandContext context;
+    private final Integer index;
     private final String text;
     private final Class<?> parameterType;
     private final boolean required;

@@ -34,7 +34,7 @@ public class BooleanParameterRenderer implements ParameterRenderer {
                 rowsInline.add(
                     Collections.singletonList(InlineKeyboardButton.builder()
                         .text("Пропусить")
-                        .callbackData(CommandBuilder.create().scipAnswer().build())
+                        .callbackData(CommandBuilder.create().scipAnswer(parameterRequest.getIndex()).build())
                         .build())
                 );
             }
