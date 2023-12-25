@@ -41,7 +41,11 @@ public class DynamicParameters {
     }
 
     public boolean canScipAnswer(int index) {
-        return params.containsKey(SCIP_ANSWER_DYNAMIC_PARAM + index);
+        if (!params.containsKey(SCIP_ANSWER_DYNAMIC_PARAM)) {
+            return false;
+        }
+        var allowedIndex = Integer.parseInt(params.get(SCIP_ANSWER_DYNAMIC_PARAM));
+        return allowedIndex >= index;
     }
 
     public boolean commandApproved() {

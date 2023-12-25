@@ -81,7 +81,7 @@ public class CommandBuilder {
     }
 
     public CommandBuilder scipAnswer(int index) {
-        return addParam(SCIP_ANSWER_DYNAMIC_PARAM + index);
+        return addParam(SCIP_ANSWER_DYNAMIC_PARAM, String.valueOf(index));
     }
 
     public CommandBuilder commandApproved() {
