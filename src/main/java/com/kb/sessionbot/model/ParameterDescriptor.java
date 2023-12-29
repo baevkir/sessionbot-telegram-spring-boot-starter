@@ -6,10 +6,12 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Builder
@@ -58,7 +60,7 @@ public class ParameterDescriptor {
             .map(option ->
                 Option.builder()
                     .key(option.value())
-                    .value(option.displayValue() == null ? option.value() : option.displayValue())
+                    .value(Optional.ofNullable(option.displayValue()).filter(StringUtils::isNotBlank).orElse(option.value()))
                     .build()
             ).collect(Collectors.toList());
 
