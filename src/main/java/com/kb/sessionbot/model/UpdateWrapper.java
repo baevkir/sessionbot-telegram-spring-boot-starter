@@ -39,6 +39,13 @@ public class UpdateWrapper {
         throw new RuntimeException("Cannot get chat id from update");
     }
 
+    public Optional<Integer> getMessageId() {
+        if (!update.hasMessage()) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(update.getMessage()).map(Message::getMessageId);
+    }
+
     public boolean isCommand() {
         return (update.hasMessage() && update.getMessage().isCommand()) || messageDescriptor.isCommand();
     }

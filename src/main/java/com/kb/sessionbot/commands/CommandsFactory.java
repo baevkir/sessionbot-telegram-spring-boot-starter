@@ -1,6 +1,5 @@
 package com.kb.sessionbot.commands;
 
-import com.google.common.collect.ImmutableList;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.PostConstruct;

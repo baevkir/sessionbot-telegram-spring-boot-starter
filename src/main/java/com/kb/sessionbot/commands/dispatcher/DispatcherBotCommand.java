@@ -11,7 +11,9 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Slf4j
 public class DispatcherBotCommand implements IBotCommand {
@@ -36,24 +38,25 @@ public class DispatcherBotCommand implements IBotCommand {
         if (invocationResult.getInvocationArgument() != null) {
             return invocationResult.getInvocationArgument();
         }
-        if (commandContext.getUpdates().size() >= 2) {
-            var removeOldMessages = Flux.fromIterable(commandContext.getUpdates())
-                .skip(1)
-                .mapNotNull(update -> update.getCallbackMessage().orElse(null))
-                .map(Message::getMessageId)
-                .distinct()
-                .map(messageId ->
-                    DeleteMessage.builder()
-                        .chatId(commandContext.getChatId())
-                        .messageId(messageId)
-                        .build()
-                );
-            return Flux.concat(
-                invocationResult.getInvocation(),
-                removeOldMessages
+        var removeOldMessages = commandContext.getUpdates()
+            .stream()
+            .flatMap(update -> {
+                Stream.Builder<Integer> messages = Stream.builder();
+                update.getMessageId().ifPresent(messages::add);
+                update.getCallbackMessage().map(Message::getMessageId).ifPresent(messages::add);
+                return messages.build();
+            })
+            .distinct()
+            .map(messageId ->
+                DeleteMessage.builder()
+                    .chatId(commandContext.getChatId())
+                    .messageId(messageId)
+                    .build()
             );
-        }
-        return invocationResult.getInvocation();
+        return Flux.concat(
+            invocationResult.getInvocation(),
+            Flux.fromStream(removeOldMessages)
+        );
     }
 
     @Override
