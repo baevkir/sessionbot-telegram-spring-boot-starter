@@ -17,7 +17,7 @@
 
     <properties>
         <java.version>11</java.version>
-        <telegram-bot.version>5.1.1</telegram-bot.version>
+        <telegram-bot.version>6.8.0</telegram-bot.version>
         <commons-collections4.version>4.1</commons-collections4.version>
         <commons-lang3.version>3.10</commons-lang3.version>
         <jackson.version>2.11.0.rc1</jackson.version>
