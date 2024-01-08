@@ -13,6 +13,7 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -22,6 +23,7 @@ import reactor.core.publisher.Sinks;
 import reactor.util.retry.Retry;
 
 import javax.annotation.PostConstruct;
+import java.io.Serializable;
 
 @Slf4j
 public class CommandsSessionBot extends TelegramLongPollingBot {
@@ -74,17 +76,17 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
             .map(commands -> SetMyCommands.builder().commands(commands).build());
 
         Flux.concat(
-                setMyCommands,
+                setMyCommands.map(this::executeMessage),
                 updatesSink.asFlux()
                     .map(UpdateWrapper::wrap)
                     .groupBy(UpdateWrapper::getChatId)
                     .flatMap(updates -> this.handleUpdates(updates).onErrorResume(errorHandler::handle))
                     .mergeWith(messagesSink.asFlux())
                     .retry()
-            ).subscribe(this::executeMessage);
+            ).subscribe();
     }
 
-    private Flux<PartialBotApiMethod<?>> handleUpdates(Flux<UpdateWrapper> updates) {
+    private Flux<?> handleUpdates(Flux<UpdateWrapper> updates) {
         Assert.notNull(updates, "Updates is null.");
         return updates
             .scanWith(CommandContext::empty, (context, update) -> {
@@ -107,14 +109,20 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
                             return Flux.error(new BotAuthException(context, "User " + context.getCommandUpdate().getFrom().getUserName()+ " is unauthorized to use bot."));
                         }
                         return commandsFactory.getCommand(context.getCommand()).process(context);
+                    })
+                    .map(message ->  executeMessage(message))
+                    .doOnNext(result -> {
+                        if (result instanceof Message) {
+                            context.addMessage((Message) result);
+                        }
                     });
             });
     }
 
-    private void executeMessage(PartialBotApiMethod<?> message) {
+    private <T extends Serializable> T executeMessage(PartialBotApiMethod<T> message) {
         try {
             if (message instanceof BotApiMethod) {
-                execute((BotApiMethod<?>) message);
+                return execute((BotApiMethod<T>) message);
             } else {
                 throw new UnsupportedOperationException("Message type " + message.getClass().getSimpleName() + " is not supported yet");
             }

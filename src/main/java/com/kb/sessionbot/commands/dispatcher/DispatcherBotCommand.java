@@ -39,14 +39,16 @@ public class DispatcherBotCommand implements IBotCommand {
         if (invocationResult.getInvocationArgument() != null) {
             return invocationResult.getInvocationArgument();
         }
-        var removeOldMessages = commandContext.getUpdates()
+        var removeOldMessages = Stream.concat(
+            commandContext.getMessages().stream().map(Message::getMessageId),
+            commandContext.getUpdates()
             .stream()
             .flatMap(update -> {
                 Stream.Builder<Integer> messages = Stream.builder();
                 update.getMessageId().ifPresent(messages::add);
                 update.getCallbackMessage().map(Message::getMessageId).ifPresent(messages::add);
                 return messages.build();
-            })
+            }))
             .distinct()
             .map(messageId ->
                 DeleteMessage.builder()
