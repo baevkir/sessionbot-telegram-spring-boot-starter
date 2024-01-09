@@ -17,13 +17,15 @@ public class CommandContext {
     private UpdateWrapper commandUpdate;
     private final Deque<UpdateWrapper> updates = new LinkedList<>();
     private final List<String> answers = Collections.synchronizedList(new ArrayList<>());
-    private final List<Message> messages = Collections.synchronizedList(new ArrayList<>());
+    private final List<Message> questionMessages = Collections.synchronizedList(new ArrayList<>());
+    private ContextState state;
 
     public static CommandContext create(UpdateWrapper commandUpdate) {
         Assert.isTrue(commandUpdate.isCommand(), "Context should be created only for command.");
         CommandContext context = new CommandContext();
         context.commandUpdate = commandUpdate;
         context.answers.addAll(commandUpdate.getAnswers());
+        context.state = ContextState.open;
         return context;
     }
 
@@ -33,6 +35,16 @@ public class CommandContext {
 
     public String getCommand() {
         return commandUpdate.getCommand();
+    }
+
+    public CommandContext startProgress() {
+        state = ContextState.progress;
+        return this;
+    }
+
+    public CommandContext close() {
+        state = ContextState.close;
+        return this;
     }
 
     public CommandContext addAnswer(String answer) {
@@ -46,9 +58,9 @@ public class CommandContext {
         return this;
     }
 
-    public CommandContext addMessage(Message message) {
+    public CommandContext addQuestionMessage(Message message) {
         Objects.requireNonNull(message, "Message is null");
-        messages.add(message);
+        questionMessages.add(message);
         return this;
     }
 
@@ -87,4 +99,5 @@ public class CommandContext {
     public DynamicParameters getDynamicParams() {
         return getCurrentUpdate().orElse(commandUpdate).getDynamicParams();
     }
+
 }

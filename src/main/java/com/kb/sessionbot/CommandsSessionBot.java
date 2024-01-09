@@ -7,6 +7,7 @@ import com.kb.sessionbot.config.CommandsSessionBotProperties;
 import com.kb.sessionbot.errors.exception.BotAuthException;
 import com.kb.sessionbot.errors.handler.ErrorHandlerFactory;
 import com.kb.sessionbot.model.CommandContext;
+import com.kb.sessionbot.model.ContextState;
 import com.kb.sessionbot.model.UpdateWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.Assert;
@@ -113,8 +114,8 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
                     })
                     .doOnNext(message -> {
                         var result = this.executeMessage(message);
-                        if (result instanceof Message && context.getInitialUpdate().isPresent()) {
-                            context.addMessage((Message) result);
+                        if (result instanceof Message && ContextState.progress.equals(context.getState())) {
+                            context.addQuestionMessage((Message) result);
                         }
                     });
             });

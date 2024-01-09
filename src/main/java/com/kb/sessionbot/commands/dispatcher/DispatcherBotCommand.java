@@ -2,10 +2,12 @@ package com.kb.sessionbot.commands.dispatcher;
 
 import com.kb.sessionbot.commands.IBotCommand;
 import com.kb.sessionbot.model.CommandContext;
+import com.kb.sessionbot.model.ContextState;
 import com.kb.sessionbot.model.UpdateWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.springframework.context.ApplicationContext;
+import org.springframework.util.Assert;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.updates.GetUpdates;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
@@ -28,6 +30,7 @@ public class DispatcherBotCommand implements IBotCommand {
     }
 
     public Publisher<? extends PartialBotApiMethod<?>> process(CommandContext commandContext) {
+        Assert.isTrue(!ContextState.close.equals(commandContext.getState()), "Cannot process closed context");
         var invocationResult = commandsDispatcher.invoke(commandContext);
         if (invocationResult.hasErrors()) {
             return Mono.error(invocationResult.getInvocationError());
@@ -39,22 +42,20 @@ public class DispatcherBotCommand implements IBotCommand {
             pendingArguments.forEach(commandContext::addAnswer);
         }
         if (invocationResult.getInvocationArgument() != null) {
+            commandContext.startProgress();
             return invocationResult.getInvocationArgument();
         }
+        commandContext.close();
         var removeOldMessages = Flux.<Integer>create(sink -> {
-//                var commandUpdate = commandContext.getCommandUpdate();
-//                var commandMessageId = commandUpdate.getMessageId()
-//                    .or(() -> commandUpdate.getCallbackMessage().map(Message::getMessageId))
-//                    .orElse(null);
-//                commandContext.getMessages().stream()
-//                    .map(Message::getMessageId)
-//                    .filter(messageId -> !Objects.equals(commandMessageId, messageId))
-//                    .forEach(sink::next);
+                commandContext.getQuestionMessages().stream()
+                    .map(Message::getMessageId)
+                    .forEach(sink::next);
 
                 commandContext.getUpdates().forEach(update -> {
                     update.getMessageId().ifPresent(sink::next);
                     update.getCallbackMessage().map(Message::getMessageId).ifPresent(sink::next);
                 });
+                sink.complete();
             })
             .distinct()
             .map(messageId ->
