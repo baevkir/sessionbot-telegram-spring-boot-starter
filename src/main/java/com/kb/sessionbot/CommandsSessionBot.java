@@ -1,5 +1,6 @@
 package com.kb.sessionbot;
 
+import com.google.common.base.Function;
 import com.kb.sessionbot.auth.AuthInterceptor;
 import com.kb.sessionbot.commands.CommandsFactory;
 import com.kb.sessionbot.config.CommandsSessionBotProperties;
@@ -76,17 +77,17 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
             .map(commands -> SetMyCommands.builder().commands(commands).build());
 
         Flux.concat(
-                setMyCommands.map(this::executeMessage),
+                setMyCommands.doOnNext(this::executeMessage),
                 updatesSink.asFlux()
                     .map(UpdateWrapper::wrap)
                     .groupBy(UpdateWrapper::getChatId)
-                    .flatMap(updates -> this.handleUpdates(updates).onErrorResume(errorHandler::handle))
-                    .mergeWith(messagesSink.asFlux())
+                    .flatMap(updates -> this.handleUpdates(updates).onErrorResume(error -> errorHandler.handle(error).doOnNext(this::executeMessage)))
+                    .mergeWith(messagesSink.asFlux().doOnNext(this::executeMessage))
                     .retry()
             ).subscribe();
     }
 
-    private Flux<?> handleUpdates(Flux<UpdateWrapper> updates) {
+    private Flux<PartialBotApiMethod<?>> handleUpdates(Flux<UpdateWrapper> updates) {
         Assert.notNull(updates, "Updates is null.");
         return updates
             .scanWith(CommandContext::empty, (context, update) -> {
@@ -101,7 +102,7 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
             .skip(1)
             .flatMap(context -> {
                 if (context.isEmpty()) {
-                    return commandsFactory.getHelpCommand().process(context);
+                    return Flux.from(commandsFactory.getHelpCommand().process(context)).doOnNext(this::executeMessage);
                 }
                 return authInterceptor.intercept(context)
                     .flatMapMany(result -> {
@@ -110,9 +111,9 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
                         }
                         return commandsFactory.getCommand(context.getCommand()).process(context);
                     })
-                    .map(message ->  executeMessage(message))
-                    .doOnNext(result -> {
-                        if (result instanceof Message) {
+                    .doOnNext(message -> {
+                        var result = this.executeMessage(message);
+                        if (result instanceof Message && context.getInitialUpdate().isPresent()) {
                             context.addMessage((Message) result);
                         }
                     });
@@ -128,6 +129,7 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
             }
         } catch (TelegramApiException e) {
             log.error("Cannot execute message", e);
+            return null;
         }
     }
 }

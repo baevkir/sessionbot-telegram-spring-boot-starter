@@ -2,6 +2,7 @@ package com.kb.sessionbot.commands.dispatcher;
 
 import com.kb.sessionbot.commands.IBotCommand;
 import com.kb.sessionbot.model.CommandContext;
+import com.kb.sessionbot.model.UpdateWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.springframework.context.ApplicationContext;
@@ -14,6 +15,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -39,16 +41,21 @@ public class DispatcherBotCommand implements IBotCommand {
         if (invocationResult.getInvocationArgument() != null) {
             return invocationResult.getInvocationArgument();
         }
-        var removeOldMessages = Stream.concat(
-            commandContext.getMessages().stream().map(Message::getMessageId),
-            commandContext.getUpdates()
-            .stream()
-            .flatMap(update -> {
-                Stream.Builder<Integer> messages = Stream.builder();
-                update.getMessageId().ifPresent(messages::add);
-                update.getCallbackMessage().map(Message::getMessageId).ifPresent(messages::add);
-                return messages.build();
-            }))
+        var removeOldMessages = Flux.<Integer>create(sink -> {
+//                var commandUpdate = commandContext.getCommandUpdate();
+//                var commandMessageId = commandUpdate.getMessageId()
+//                    .or(() -> commandUpdate.getCallbackMessage().map(Message::getMessageId))
+//                    .orElse(null);
+//                commandContext.getMessages().stream()
+//                    .map(Message::getMessageId)
+//                    .filter(messageId -> !Objects.equals(commandMessageId, messageId))
+//                    .forEach(sink::next);
+
+                commandContext.getUpdates().forEach(update -> {
+                    update.getMessageId().ifPresent(sink::next);
+                    update.getCallbackMessage().map(Message::getMessageId).ifPresent(sink::next);
+                });
+            })
             .distinct()
             .map(messageId ->
                 DeleteMessage.builder()
@@ -58,7 +65,7 @@ public class DispatcherBotCommand implements IBotCommand {
             );
         return Flux.concat(
             invocationResult.getInvocation(),
-            Flux.fromStream(removeOldMessages)
+            removeOldMessages
         );
     }
 
