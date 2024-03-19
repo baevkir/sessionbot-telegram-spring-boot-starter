@@ -6,6 +6,7 @@ import com.google.common.collect.Sets;
 import com.kb.sessionbot.commands.CommandBuilder;
 import com.kb.sessionbot.commands.dispatcher.annotations.BotCommand;
 import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
+import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRendererFactory;
 import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRequest;
 import com.kb.sessionbot.errors.exception.BotCommandException;
 import com.kb.sessionbot.model.*;
@@ -34,9 +35,9 @@ public class CommandsDispatcher {
     @Getter private final boolean hidden;
     private final MethodMatcher methodMatcher;
     private final ObjectMapper mapper;
-    private final ApplicationContext applicationContext;
+    private final ParameterRendererFactory parameterRendererFactory;
 
-    public CommandsDispatcher(Object command, ApplicationContext applicationContext) {
+    public CommandsDispatcher(Object command, ParameterRendererFactory parameterRendererFactory) {
         this.command = command;
         var botCommand = command.getClass().getAnnotation(BotCommand.class);
         this.commandId = botCommand.value();
@@ -45,7 +46,7 @@ public class CommandsDispatcher {
         this.methodMatcher = MethodMatcher.create(command);
         mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
-        this.applicationContext = applicationContext;
+        this.parameterRendererFactory = ParameterRendererFactory.createChild(command, parameterRendererFactory);
     }
 
     public InvocationResult invoke(CommandContext context) {
@@ -153,21 +154,14 @@ public class CommandsDispatcher {
         return Optional.empty();
     }
 
-    private ParameterRenderer getDefaultRenderer() {
-        return applicationContext.getBean("defaultParameterRenderer", ParameterRenderer.class);
-    }
-
     private ParameterRenderer getRenderer(ParameterDescriptor parameter) {
-        if (parameter.getRendererType() != ParameterRenderer.class) {
-            return applicationContext.getBean(parameter.getRendererType());
-        }
-        return applicationContext.getBean(parameter.getRenderer(), ParameterRenderer.class);
+        return parameterRendererFactory.getRenderer(parameter);
     }
 
     private MethodDescriptor findInvokerMethod(CommandContext commandContext, InvocationResult invocationResult) {
         return methodMatcher.getMatchingMethod(commandContext).orElseGet(() -> {
             var options = CommandBuilder.create().addAnswers(commandContext.getAnswers()).build();
-            invocationResult.invocationArgument = getDefaultRenderer().render(
+            invocationResult.invocationArgument = parameterRendererFactory.getDefaultRenderer().render(
                 ParameterRequest.builder()
                     .context(commandContext)
                     .required(true)

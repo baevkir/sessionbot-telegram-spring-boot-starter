@@ -1,6 +1,7 @@
 package com.kb.sessionbot.commands.dispatcher;
 
 import com.kb.sessionbot.commands.IBotCommand;
+import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRendererFactory;
 import com.kb.sessionbot.model.BotCommandResult;
 import com.kb.sessionbot.model.CommandContext;
 import com.kb.sessionbot.model.ContextState;
@@ -16,18 +17,13 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Stream;
-
 @Slf4j
 public class DispatcherBotCommand implements IBotCommand {
 
     private final CommandsDispatcher commandsDispatcher;
 
-    public DispatcherBotCommand(Object handler, ApplicationContext applicationContext) {
-        this.commandsDispatcher = new CommandsDispatcher(handler, applicationContext);
+    public DispatcherBotCommand(Object handler, ParameterRendererFactory parameterRendererFactory) {
+        this.commandsDispatcher = new CommandsDispatcher(handler, parameterRendererFactory);
     }
 
     public Publisher<BotCommandResult> process(CommandContext commandContext) {

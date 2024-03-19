@@ -20,4 +20,5 @@ public class ParameterRequest {
     private final Class<?> parameterType;
     private final boolean required;
     private final List<Option> options;
+    private final boolean removeOnSuccess = true;
 }

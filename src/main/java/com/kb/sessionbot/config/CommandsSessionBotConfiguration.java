@@ -7,6 +7,7 @@ import com.kb.sessionbot.commands.HelpCommand;
 import com.kb.sessionbot.commands.IBotCommand;
 import com.kb.sessionbot.commands.dispatcher.DispatcherBotCommand;
 import com.kb.sessionbot.commands.dispatcher.annotations.BotCommand;
+import com.kb.sessionbot.commands.dispatcher.annotations.BotParameterRenderers;
 import com.kb.sessionbot.commands.dispatcher.parameters.*;
 import com.kb.sessionbot.errors.handler.BotAuthErrorHandler;
 import com.kb.sessionbot.errors.handler.BotCommandErrorHandler;
@@ -47,13 +48,12 @@ public class CommandsSessionBotConfiguration {
         return new CommandsSessionBot(commandsFactory, authInterceptor, errorHandler, properties);
     }
 
-
     @Bean
-    public List<IBotCommand> reactiveBotCommand(ApplicationContext applicationContext) {
+    public List<IBotCommand> reactiveBotCommand(ApplicationContext applicationContext, ParameterRendererFactory parameterRendererFactory) {
         return applicationContext.getBeansWithAnnotation(BotCommand.class)
                 .values()
                 .stream()
-                .map(handler -> new DispatcherBotCommand(handler, applicationContext))
+                .map(handler -> new DispatcherBotCommand(handler, parameterRendererFactory))
                 .collect(Collectors.toList());
     }
 
@@ -70,9 +70,16 @@ public class CommandsSessionBotConfiguration {
     }
 
     @Bean
+    public ParameterRendererFactory parameterRendererFactory(ApplicationContext applicationContext) {
+        var handlers = applicationContext.getBeansWithAnnotation(BotParameterRenderers.class).values();
+        var parameterRendererMap = applicationContext.getBeansOfType(ParameterRenderer.class);
+        return ParameterRendererFactory.create(parameterRendererMap, handlers);
+    }
+
+    @Bean
     @ConditionalOnMissingBean(name = "defaultParameterRenderer")
     public ParameterRenderer defaultParameterRenderer(ParameterRenderer textParameterRenderer, ParameterRenderer dateParameterRenderer, ParameterRenderer booleanParameterRenderer) {
-        return new ParameterRendererFactory(textParameterRenderer, dateParameterRenderer, booleanParameterRenderer);
+        return new CompositeParameterRenderer(textParameterRenderer, dateParameterRenderer, booleanParameterRenderer);
     }
 
     @Bean

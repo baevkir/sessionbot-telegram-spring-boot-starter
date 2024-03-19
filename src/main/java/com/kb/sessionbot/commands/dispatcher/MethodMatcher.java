@@ -1,5 +1,7 @@
 package com.kb.sessionbot.commands.dispatcher;
 
+import com.kb.sessionbot.commands.dispatcher.annotations.RenderingMethod;
+import com.kb.sessionbot.commands.dispatcher.parameters.RendererDispatcher;
 import com.kb.sessionbot.model.MessageDescriptor;
 import com.kb.sessionbot.commands.dispatcher.annotations.CommandMethod;
 import com.kb.sessionbot.model.CommandContext;
@@ -12,6 +14,7 @@ import org.springframework.util.StringUtils;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -23,10 +26,10 @@ public class MethodMatcher {
     private static final String PLACEHOLDER_FINISH = "}";
     private Map<String, MethodDescriptor> invokerMethods;
 
-    public static MethodMatcher create(Object command) {
-        var methods = Arrays.stream(command.getClass().getMethods())
+    public static MethodMatcher create(Object object) {
+        var methods = Arrays.stream(object.getClass().getMethods())
             .filter(method -> method.isAnnotationPresent(CommandMethod.class))
-            .peek(method -> log.debug("Find OperationMethod {} for class {}.", method, command.getClass()))
+            .peek(method -> log.debug("Find OperationMethod {} for class {}.", method, object.getClass()))
             .map(method -> {
                 var arguments = method.getAnnotation(CommandMethod.class).arguments();
                 var builder = MethodDescriptor.builder()

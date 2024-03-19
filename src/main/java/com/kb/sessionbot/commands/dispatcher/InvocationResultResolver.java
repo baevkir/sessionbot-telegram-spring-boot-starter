@@ -15,7 +15,7 @@ import java.util.Collection;
 @Slf4j
 @Getter
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-class InvocationResultResolver {
+public class InvocationResultResolver {
     private Object invocationResult;
 
     public static InvocationResultResolver of(Object invocationResult) {
