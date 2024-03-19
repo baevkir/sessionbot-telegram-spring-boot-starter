@@ -1,5 +1,6 @@
 package com.kb.sessionbot.commands.dispatcher.parameters;
 
+import com.kb.sessionbot.model.BotCommandResult;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
@@ -16,7 +17,7 @@ public class ParameterRendererFactory implements ParameterRenderer{
     private final ParameterRenderer booleanParameterRenderer;
 
     @Override
-    public Publisher<? extends PartialBotApiMethod<?>> render(ParameterRequest parameterRequest) {
+    public Publisher<BotCommandResult> render(ParameterRequest parameterRequest) {
         if (LocalDate.class == parameterRequest.getParameterType()){
             return dateParameterRenderer.render(parameterRequest);
         }

@@ -1,5 +1,6 @@
 package com.kb.sessionbot.commands;
 
+import com.kb.sessionbot.model.BotCommandResult;
 import com.kb.sessionbot.model.CommandContext;
 import org.reactivestreams.Publisher;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
@@ -34,5 +35,5 @@ public interface IBotCommand {
      * @return
      * @param commandContext
      */
-    Publisher<? extends PartialBotApiMethod<?>> process(CommandContext commandContext);
+    Publisher<BotCommandResult> process(CommandContext commandContext);
 }

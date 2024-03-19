@@ -1,10 +1,10 @@
 
 package com.kb.sessionbot.commands;
 
+import com.kb.sessionbot.model.BotCommandResult;
 import com.kb.sessionbot.model.CommandContext;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
-import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import reactor.core.publisher.Mono;
 
@@ -37,7 +37,7 @@ public class HelpCommand implements IBotCommand {
     }
 
     @Override
-    public Publisher<? extends PartialBotApiMethod<?>> process(CommandContext commandContext) {
+    public Publisher<BotCommandResult> process(CommandContext commandContext) {
         return Mono.fromSupplier(() -> {
             StringBuilder helpMessageBuilder = new StringBuilder("<b>Помощь</b>\n");
             helpMessageBuilder.append("Следующие команды зарегистрированны для бота:\n\n");
@@ -53,7 +53,7 @@ public class HelpCommand implements IBotCommand {
             helpMessage.enableHtml(true);
             helpMessage.setText(helpMessageBuilder.toString());
             return helpMessage;
-        });
+        }).map(method -> BotCommandResult.builder().message(method).build());
     }
 
     private String getCommandPresenter(IBotCommand command) {

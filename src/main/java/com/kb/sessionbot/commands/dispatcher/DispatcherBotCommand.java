@@ -1,6 +1,7 @@
 package com.kb.sessionbot.commands.dispatcher;
 
 import com.kb.sessionbot.commands.IBotCommand;
+import com.kb.sessionbot.model.BotCommandResult;
 import com.kb.sessionbot.model.CommandContext;
 import com.kb.sessionbot.model.ContextState;
 import com.kb.sessionbot.model.UpdateWrapper;
@@ -29,7 +30,7 @@ public class DispatcherBotCommand implements IBotCommand {
         this.commandsDispatcher = new CommandsDispatcher(handler, applicationContext);
     }
 
-    public Publisher<? extends PartialBotApiMethod<?>> process(CommandContext commandContext) {
+    public Publisher<BotCommandResult> process(CommandContext commandContext) {
         Assert.isTrue(!ContextState.close.equals(commandContext.getState()), "Cannot process closed context");
         var invocationResult = commandsDispatcher.invoke(commandContext);
         if (invocationResult.hasErrors()) {
@@ -63,7 +64,7 @@ public class DispatcherBotCommand implements IBotCommand {
                     .chatId(commandContext.getChatId())
                     .messageId(messageId)
                     .build()
-            );
+            ).map(message -> BotCommandResult.builder().message(message).build());
         return Flux.concat(
             invocationResult.getInvocation(),
             removeOldMessages

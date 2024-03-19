@@ -1,13 +1,11 @@
 package com.kb.sessionbot.commands.dispatcher.parameters;
 
-import com.google.common.collect.ImmutableList;
 import com.kb.sessionbot.commands.CommandBuilder;
+import com.kb.sessionbot.model.BotCommandResult;
 import com.kb.sessionbot.model.UpdateWrapper;
 import org.reactivestreams.Publisher;
-import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import reactor.core.publisher.Mono;
@@ -23,7 +21,7 @@ public class DateParameterRenderer implements ParameterRenderer {
     private static final String CONTINUE_CHOOSE = "date-renderer-continue";
 
     @Override
-    public Publisher<? extends PartialBotApiMethod<?>> render(ParameterRequest parameterRequest) {
+    public Publisher<BotCommandResult> render(ParameterRequest parameterRequest) {
         return Mono.fromSupplier(() -> {
             var date = Optional.ofNullable(parameterRequest.getContext().getDynamicParams().getParam(DATE_PROPERTY))
                 .map(LocalDate::parse)
@@ -44,7 +42,7 @@ public class DateParameterRenderer implements ParameterRenderer {
                 .text(String.format("%s (Формат: %s)", parameterRequest.getText(), LocalDate.now().format(ISO_DATE)))
                 .replyMarkup(buildKeyBoard(parameterRequest, date))
                 .build();
-        });
+        }).map(method -> BotCommandResult.builder().message(method).build());
     }
 
     private InlineKeyboardMarkup buildKeyBoard(ParameterRequest parameterRequest, LocalDate date) {

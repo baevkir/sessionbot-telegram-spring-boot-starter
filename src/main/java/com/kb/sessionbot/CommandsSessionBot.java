@@ -6,6 +6,7 @@ import com.kb.sessionbot.commands.CommandsFactory;
 import com.kb.sessionbot.config.CommandsSessionBotProperties;
 import com.kb.sessionbot.errors.exception.BotAuthException;
 import com.kb.sessionbot.errors.handler.ErrorHandlerFactory;
+import com.kb.sessionbot.model.BotCommandResult;
 import com.kb.sessionbot.model.CommandContext;
 import com.kb.sessionbot.model.ContextState;
 import com.kb.sessionbot.model.UpdateWrapper;
@@ -103,7 +104,9 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
             .skip(1)
             .flatMap(context -> {
                 if (context.isEmpty()) {
-                    return Flux.from(commandsFactory.getHelpCommand().process(context)).doOnNext(this::executeMessage);
+                    return Flux.from(commandsFactory.getHelpCommand().process(context))
+                        .map(BotCommandResult::getMessage)
+                        .doOnNext(this::executeMessage);
                 }
                 return authInterceptor.intercept(context)
                     .flatMapMany(result -> {
@@ -112,6 +115,7 @@ public class CommandsSessionBot extends TelegramLongPollingBot {
                         }
                         return commandsFactory.getCommand(context.getCommand()).process(context);
                     })
+                    .map(BotCommandResult::getMessage)
                     .doOnNext(message -> {
                         var result = this.executeMessage(message);
                         if (result instanceof Message && ContextState.progress.equals(context.getState())) {

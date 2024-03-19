@@ -1,5 +1,6 @@
 package com.kb.sessionbot.commands.dispatcher;
 
+import com.kb.sessionbot.model.BotCommandResult;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,7 +24,7 @@ class InvocationResultResolver {
         return resolver;
     }
 
-    public Publisher<? extends PartialBotApiMethod<?>> resolve() {
+    public Publisher<BotCommandResult> resolve() {
         if (invocationResult == null) {
             return Mono.empty();
         }
@@ -37,7 +38,10 @@ class InvocationResultResolver {
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends PartialBotApiMethod<?>> T resolveFlatType(Object value) {
-        return (T) value;
+    private <T extends PartialBotApiMethod<?>> BotCommandResult resolveFlatType(Object value) {
+        if (value instanceof BotCommandResult) {
+            return (BotCommandResult) value;
+        }
+        return BotCommandResult.builder().message((T) value).build();
     }
 }

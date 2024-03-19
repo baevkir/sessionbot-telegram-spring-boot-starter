@@ -182,8 +182,8 @@ public class CommandsDispatcher {
     @Getter
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static class InvocationResult {
-        private Publisher<? extends PartialBotApiMethod<?>> invocation;
-        private Publisher<? extends PartialBotApiMethod<?>> invocationArgument;
+        private Publisher<BotCommandResult> invocation;
+        private Publisher<BotCommandResult> invocationArgument;
         private Method invocationMethod;
         private final List<Object> commandArguments = new ArrayList<>();
         private Throwable invocationError;
