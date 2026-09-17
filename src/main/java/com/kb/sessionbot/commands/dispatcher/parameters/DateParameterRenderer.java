@@ -15,7 +15,6 @@ import reactor.core.publisher.Mono;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import static java.time.format.DateTimeFormatter.ISO_DATE;
@@ -60,7 +59,7 @@ public class DateParameterRenderer implements ParameterRenderer {
 
         rowsInline.add(new InlineKeyboardRow(
             InlineKeyboardButton.builder()
-                .text(date.format(DateTimeFormatter.ofPattern("MMMM yyyy")))
+                .text(labels.month(parameterRequest.getContext(), date.getMonth()) + " " + date.getYear())
                 .callbackData(CommandBuilder.create().addParam(DATE_PROPERTY, date.format(ISO_DATE)).addParam(CONTINUE_CHOOSE).build())
                 .build()
         ));

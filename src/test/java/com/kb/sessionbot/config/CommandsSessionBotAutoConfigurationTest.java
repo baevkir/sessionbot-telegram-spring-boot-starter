@@ -57,7 +57,8 @@ class CommandsSessionBotAutoConfigurationTest {
             assertThat(context).hasBean("textParameterRenderer");
             assertThat(context).hasBean("booleanParameterRenderer");
             assertThat(context).hasBean("dateParameterRenderer");
-            assertThat(context.getBeansOfType(ParameterRenderer.class)).hasSize(4);
+            assertThat(context).hasBean("timeParameterRenderer");
+            assertThat(context.getBeansOfType(ParameterRenderer.class)).hasSize(5);
         });
     }
 

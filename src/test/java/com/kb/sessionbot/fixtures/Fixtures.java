@@ -1,13 +1,18 @@
 package com.kb.sessionbot.fixtures;
 
+import com.kb.sessionbot.i18n.BotLabels;
+import com.kb.sessionbot.i18n.ConfiguredLocaleProvider;
 import com.kb.sessionbot.model.CommandContext;
 import com.kb.sessionbot.model.UpdateWrapper;
+import org.springframework.context.support.ResourceBundleMessageSource;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.chat.Chat;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
+
+import java.util.Locale;
 
 /** Builds Telegram DTOs and session objects from wire strings for tests. */
 public final class Fixtures {
@@ -88,5 +93,14 @@ public final class Fixtures {
 
     public static CommandContext contextFor(String commandWire) {
         return CommandContext.create(commandWrapper(commandWire));
+    }
+
+    /** Real library bundles resolved in {@code locale}, the way a bot configured with that language sees them. */
+    public static BotLabels labels(Locale locale) {
+        var messages = new ResourceBundleMessageSource();
+        messages.setBasenames("sessionbot-labels");
+        messages.setDefaultEncoding("UTF-8");
+        messages.setFallbackToSystemLocale(false);
+        return new BotLabels(messages, new ConfiguredLocaleProvider(locale));
     }
 }
