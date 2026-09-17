@@ -23,6 +23,7 @@ import com.kb.sessionbot.errors.handler.ErrorHandlerFactory;
 import com.kb.sessionbot.i18n.BotLabels;
 import com.kb.sessionbot.i18n.ConfiguredLocaleProvider;
 import com.kb.sessionbot.i18n.LocaleProvider;
+import com.kb.sessionbot.text.TextHandler;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -88,9 +89,10 @@ public class CommandsSessionBotConfiguration {
             CommandsFactory commandsFactory,
             AuthInterceptor authInterceptor,
             MessageExecutor messageExecutor,
-            ObjectProvider<DocumentHandler> documentHandlers) {
+            ObjectProvider<DocumentHandler> documentHandlers,
+            ObjectProvider<TextHandler> textHandlers) {
         return new TelegramUpdateHandler(commandsFactory, authInterceptor, messageExecutor,
-            documentHandlers.orderedStream().toList());
+            documentHandlers.orderedStream().toList(), textHandlers.orderedStream().toList());
     }
 
     @Bean

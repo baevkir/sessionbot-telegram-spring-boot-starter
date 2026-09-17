@@ -16,6 +16,7 @@ import com.kb.sessionbot.fixtures.Fixtures;
 import com.kb.sessionbot.fixtures.FixtureCommandConfig;
 import com.kb.sessionbot.fixtures.OrderCommand;
 import com.kb.sessionbot.model.CommandContext;
+import com.kb.sessionbot.text.TextHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +36,7 @@ import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -82,10 +84,22 @@ class TelegramUpdateHandlerTest {
     }
 
     private TelegramUpdateHandler handler(AuthInterceptor auth, List<DocumentHandler> documentHandlers) {
+        return handler(auth, documentHandlers, List.of());
+    }
+
+    private TelegramUpdateHandler handler(AuthInterceptor auth, List<DocumentHandler> documentHandlers,
+                                          List<TextHandler> textHandlers) {
         return new TelegramUpdateHandler(
             commandsFactory, auth,
             new TelegramClientMessageExecutor(telegramClient, errorHandlerFactory),
-            documentHandlers);
+            documentHandlers, textHandlers);
+    }
+
+    private static TextHandler echoText(AtomicReference<String> received) {
+        return (context, text) -> {
+            received.set(text);
+            return Mono.just(SendMessage.builder().chatId(context.getChatId()).text("got: " + text).build());
+        };
     }
 
     @DisplayName("command update completes and emits its SendMessage response")
@@ -308,5 +322,64 @@ class TelegramUpdateHandlerTest {
 
         StepVerifier.create(handler.handleUpdates(updates))
             .verifyError(BotAuthException.class);
+    }
+
+    @DisplayName("bare text routes to the text handler verbatim, & and # included")
+    @Test
+    void bareTextRoutesToTheTextHandlerVerbatim() {
+        var received = new AtomicReference<String>();
+        var handler = handler(ALLOW, List.of(), List.of(echoText(received)));
+        var updates = Flux.just(Fixtures.wrap(
+            Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "Пилосос & підлога #кухня")));
+
+        StepVerifier.create(handler.handleUpdates(updates))
+            .assertNext(sent -> assertThat(((SendMessage) sent).getText()).isEqualTo("got: Пилосос & підлога #кухня"))
+            .verifyComplete();
+        assertThat(received.get()).isEqualTo("Пилосос & підлога #кухня");
+    }
+
+    @DisplayName("a command still wins over a registered text handler")
+    @Test
+    void commandWinsOverTextHandler() {
+        var received = new AtomicReference<String>();
+        var handler = handler(ALLOW, List.of(), List.of(echoText(received)));
+        var updates = Flux.just(Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "/order?buy&book")));
+
+        StepVerifier.create(handler.handleUpdates(updates)
+                .filter(message -> message instanceof SendMessage)
+                .map(message -> ((SendMessage) message).getText()))
+            .expectNext("buy:book")
+            .verifyComplete();
+        assertThat(received.get()).isNull();
+    }
+
+    @DisplayName("text typed while a command waits for an answer goes to the command, not the handler")
+    @Test
+    void textMidCommandAnswersTheCommand() {
+        var received = new AtomicReference<String>();
+        var handler = handler(ALLOW, List.of(), List.of(echoText(received)));
+        var updates = Flux.just(
+            Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "/order?buy")),
+            Fixtures.wrap(Fixtures.messageUpdate(2, Fixtures.CHAT_ID, 101, "book")));
+
+        StepVerifier.create(handler.handleUpdates(updates)
+                .filter(message -> message instanceof SendMessage)
+                .map(message -> ((SendMessage) message).getText()))
+            .expectNextMatches(text -> text.contains("product"))
+            .expectNext("buy:book")
+            .verifyComplete();
+        assertThat(received.get()).isNull();
+    }
+
+    @DisplayName("text dispatch is auth-gated")
+    @Test
+    void textDeniedByAuthErrors() {
+        var received = new AtomicReference<String>();
+        var handler = handler(DENY, List.of(), List.of(echoText(received)));
+        var updates = Flux.just(Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "Винести сміття")));
+
+        StepVerifier.create(handler.handleUpdates(updates))
+            .verifyError(BotAuthException.class);
+        assertThat(received.get()).isNull();
     }
 }

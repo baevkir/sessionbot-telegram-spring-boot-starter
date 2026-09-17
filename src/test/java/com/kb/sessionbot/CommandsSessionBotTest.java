@@ -83,7 +83,7 @@ class CommandsSessionBotTest {
 
     private CommandsSessionBot bot(AuthInterceptor auth, List<DocumentHandler> documentHandlers) {
         var executor = new TelegramClientMessageExecutor(telegramClient, errorHandlerFactory);
-        var updateHandler = new TelegramUpdateHandler(commandsFactory, auth, executor, documentHandlers);
+        var updateHandler = new TelegramUpdateHandler(commandsFactory, auth, executor, documentHandlers, List.of());
         var inboundUpdateBus = new SinkInboundUpdateBus(Duration.ofMinutes(30));
         return new CommandsSessionBot(
             commandsFactory, errorHandlerFactory, executor, outboundMessageBus, updateHandler,

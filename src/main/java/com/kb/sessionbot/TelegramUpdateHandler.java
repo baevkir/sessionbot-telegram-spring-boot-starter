@@ -8,14 +8,18 @@ import com.kb.sessionbot.errors.exception.BotCommandException;
 import com.kb.sessionbot.model.CommandContext;
 import com.kb.sessionbot.model.ContextState;
 import com.kb.sessionbot.model.UpdateWrapper;
+import com.kb.sessionbot.text.TextHandler;
 import lombok.extern.slf4j.Slf4j;
+import org.reactivestreams.Publisher;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.PartialBotApiMethod;
-import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * Per-chat fold/dispatch: folds a chat's {@link UpdateWrapper} stream into an evolving
@@ -32,17 +36,20 @@ public class TelegramUpdateHandler {
     private final AuthInterceptor authInterceptor;
     private final MessageExecutor messageExecutor;
     private final List<DocumentHandler> documentHandlers;
+    private final List<TextHandler> textHandlers;
 
     public TelegramUpdateHandler(
         CommandsFactory commandsFactory,
         AuthInterceptor authInterceptor,
         MessageExecutor messageExecutor,
-        List<DocumentHandler> documentHandlers
+        List<DocumentHandler> documentHandlers,
+        List<TextHandler> textHandlers
     ) {
         this.commandsFactory = commandsFactory;
         this.authInterceptor = authInterceptor;
         this.messageExecutor = messageExecutor;
         this.documentHandlers = documentHandlers;
+        this.textHandlers = textHandlers;
     }
 
     public Flux<PartialBotApiMethod<?>> handleUpdates(Flux<UpdateWrapper> updates) {
@@ -71,11 +78,7 @@ public class TelegramUpdateHandler {
     private Flux<PartialBotApiMethod<?>> dispatch(CommandContext context) {
         if (context.isEmpty()) {
             return context.getCurrentUpdate()
-                .flatMap(update -> update.getDocument()
-                    .flatMap(document -> documentHandlers.stream()
-                        .filter(handler -> handler.supports(document))
-                        .findFirst()
-                        .map(handler -> dispatchDocument(update, document, handler))))
+                .flatMap(this::dispatchOutsideCommand)
                 .orElseGet(() -> Flux.<PartialBotApiMethod<?>>from(commandsFactory.getHelpCommand().process(context))
                     .doOnNext(messageExecutor::execute));
         }
@@ -98,22 +101,46 @@ public class TelegramUpdateHandler {
             });
     }
 
-    private Flux<PartialBotApiMethod<?>> dispatchDocument(UpdateWrapper update, Document document, DocumentHandler handler) {
-        var documentContext = CommandContext.forUpdate(update);
-        log.debug("Dispatching document '{}' in chat {}", document.getFileName(), documentContext.getChatId());
-        return authInterceptor.intercept(documentContext)
+    private Optional<Flux<PartialBotApiMethod<?>>> dispatchOutsideCommand(UpdateWrapper update) {
+        var documentDispatch = update.getDocument()
+            .flatMap(document -> documentHandlers.stream()
+                .filter(handler -> handler.supports(document))
+                .findFirst()
+                .map(handler -> dispatchBare(update, "document '" + document.getFileName() + "'",
+                    bareContext -> handler.handle(bareContext, document))));
+        if (documentDispatch.isPresent()) {
+            return documentDispatch;
+        }
+        return messageText(update)
+            .flatMap(text -> textHandlers.stream()
+                .findFirst()
+                .map(handler -> dispatchBare(update, "text", bareContext -> handler.handle(bareContext, text))));
+    }
+
+    private Flux<PartialBotApiMethod<?>> dispatchBare(UpdateWrapper update, String description,
+                                                     Function<CommandContext, Publisher<PartialBotApiMethod<?>>> handling) {
+        var bareContext = CommandContext.forUpdate(update);
+        log.debug("Dispatching {} in chat {}", description, bareContext.getChatId());
+        return authInterceptor.intercept(bareContext)
             .<PartialBotApiMethod<?>>flatMapMany(authorized -> {
                 if (!authorized) {
                     var from = update.getFrom();
                     var username = from != null ? from.getUserName() : "unknown";
-                    return Flux.error(new BotAuthException(documentContext, "User " + username + " is unauthorized to use bot."));
+                    return Flux.error(new BotAuthException(bareContext, "User " + username + " is unauthorized to use bot."));
                 }
-                return handler.handle(documentContext, document);
+                return handling.apply(bareContext);
             })
             .onErrorMap(error -> error instanceof BotCommandException || error instanceof BotAuthException
                 ? error
-                : new BotCommandException(documentContext, error))
+                : new BotCommandException(bareContext, error))
             .doOnNext(messageExecutor::execute);
+    }
+
+    /** The message text exactly as typed; a callback's data is not "text" and never reaches a handler. */
+    private static Optional<String> messageText(UpdateWrapper update) {
+        return Optional.ofNullable(update.getUpdate().getMessage())
+            .map(Message::getText)
+            .filter(StringUtils::hasText);
     }
 
     /**
