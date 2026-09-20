@@ -57,7 +57,7 @@ public class TelegramUpdateHandler {
         this.documentHandlers = documentHandlers;
         this.contactHandlers = contactHandlers;
         this.textHandlers = textHandlers;
-        this.permitCommands = permitCommands;
+        this.permitCommands = permitCommands == null ? List.of() : List.copyOf(permitCommands);
     }
 
     public Flux<PartialBotApiMethod<?>> handleUpdates(Flux<UpdateWrapper> updates) {

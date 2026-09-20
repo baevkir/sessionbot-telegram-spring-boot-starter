@@ -6,6 +6,7 @@ import com.kb.sessionbot.model.CommandContext;
 import com.kb.sessionbot.model.UpdateWrapper;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
+import org.telegram.telegrambots.meta.api.objects.Contact;
 import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
@@ -59,6 +60,24 @@ public final class Fixtures {
             .chat(Chat.builder().id(chatId).type("private").build())
             .from(user("tester"))
             .document(document)
+            .build();
+        var update = new Update();
+        update.setUpdateId(updateId);
+        update.setMessage(message);
+        return update;
+    }
+
+    /** A message-based update carrying a shared contact and no text. */
+    public static Update contactUpdate(int updateId, long chatId, int messageId, long contactUserId) {
+        var contact = new Contact();
+        contact.setUserId(contactUserId);
+        contact.setPhoneNumber("+380000000" + updateId);
+        contact.setFirstName("Contact");
+        var message = Message.builder()
+            .messageId(messageId)
+            .chat(Chat.builder().id(chatId).type("private").build())
+            .from(user("tester"))
+            .contact(contact)
             .build();
         var update = new Update();
         update.setUpdateId(updateId);
