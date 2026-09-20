@@ -92,7 +92,7 @@ class TelegramUpdateHandlerTest {
         return new TelegramUpdateHandler(
             commandsFactory, auth,
             new TelegramClientMessageExecutor(telegramClient, errorHandlerFactory),
-            documentHandlers, textHandlers);
+            documentHandlers, List.of(), textHandlers, List.of());
     }
 
     private static TextHandler echoText(AtomicReference<String> received) {

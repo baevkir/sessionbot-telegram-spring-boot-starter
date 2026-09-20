@@ -7,6 +7,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
+import org.telegram.telegrambots.meta.api.objects.Contact;
 import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.message.MaybeInaccessibleMessage;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
@@ -77,6 +78,10 @@ public class UpdateWrapper {
 
     public Optional<Document> getDocument() {
         return Optional.ofNullable(update.getMessage()).map(Message::getDocument);
+    }
+
+    public Optional<Contact> getContact() {
+        return Optional.ofNullable(update.getMessage()).map(Message::getContact);
     }
 
     public DynamicParameters getDynamicParams() {

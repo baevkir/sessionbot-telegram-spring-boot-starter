@@ -2,6 +2,7 @@ package com.kb.sessionbot;
 
 import com.kb.sessionbot.auth.AuthInterceptor;
 import com.kb.sessionbot.commands.CommandsFactory;
+import com.kb.sessionbot.contacts.ContactHandler;
 import com.kb.sessionbot.documents.DocumentHandler;
 import com.kb.sessionbot.errors.exception.BotAuthException;
 import com.kb.sessionbot.errors.exception.BotCommandException;
@@ -16,6 +17,7 @@ import org.springframework.util.StringUtils;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Optional;
@@ -36,20 +38,26 @@ public class TelegramUpdateHandler {
     private final AuthInterceptor authInterceptor;
     private final MessageExecutor messageExecutor;
     private final List<DocumentHandler> documentHandlers;
+    private final List<ContactHandler> contactHandlers;
     private final List<TextHandler> textHandlers;
+    private final List<String> permitCommands;
 
     public TelegramUpdateHandler(
         CommandsFactory commandsFactory,
         AuthInterceptor authInterceptor,
         MessageExecutor messageExecutor,
         List<DocumentHandler> documentHandlers,
-        List<TextHandler> textHandlers
+        List<ContactHandler> contactHandlers,
+        List<TextHandler> textHandlers,
+        List<String> permitCommands
     ) {
         this.commandsFactory = commandsFactory;
         this.authInterceptor = authInterceptor;
         this.messageExecutor = messageExecutor;
         this.documentHandlers = documentHandlers;
+        this.contactHandlers = contactHandlers;
         this.textHandlers = textHandlers;
+        this.permitCommands = permitCommands;
     }
 
     public Flux<PartialBotApiMethod<?>> handleUpdates(Flux<UpdateWrapper> updates) {
@@ -83,9 +91,12 @@ public class TelegramUpdateHandler {
                     .doOnNext(messageExecutor::execute));
         }
         log.debug("Dispatching command '{}' in chat {} (state={})", context.getCommand(), context.getChatId(), context.getState());
-        return authInterceptor.intercept(context)
-            .<PartialBotApiMethod<?>>flatMapMany(authorized -> {
-                if (!authorized) {
+        Mono<Boolean> authorized = permitCommands.contains(context.getCommand())
+                ? Mono.just(true)
+                : authInterceptor.intercept(context);
+        return authorized
+            .<PartialBotApiMethod<?>>flatMapMany(allowed -> {
+                if (!allowed) {
                     var from = context.getCommandUpdate().getFrom();
                     var username = from != null ? from.getUserName() : "unknown";
                     log.debug("Auth rejected for command '{}' in chat {} (user={})", context.getCommand(), context.getChatId(), username);
@@ -102,6 +113,15 @@ public class TelegramUpdateHandler {
     }
 
     private Optional<Flux<PartialBotApiMethod<?>>> dispatchOutsideCommand(UpdateWrapper update) {
+        var contactDispatch = update.getContact()
+            .flatMap(contact -> contactHandlers.stream()
+                .filter(handler -> handler.supports(contact))
+                .findFirst()
+                .map(handler -> dispatchBare(update, "contact " + contact.getUserId(),
+                    bareContext -> handler.handle(bareContext, contact))));
+        if (contactDispatch.isPresent()) {
+            return contactDispatch;
+        }
         var documentDispatch = update.getDocument()
             .flatMap(document -> documentHandlers.stream()
                 .filter(handler -> handler.supports(document))
