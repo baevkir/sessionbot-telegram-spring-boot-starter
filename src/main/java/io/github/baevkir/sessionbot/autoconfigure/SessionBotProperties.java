@@ -18,8 +18,8 @@ public class SessionBotProperties {
     /** Maximum number of chats processed concurrently (per-chat fan-out concurrency). */
     private int maxConcurrentChats = 256;
     /**
-     * Commands that run without consulting the {@code AuthInterceptor}. `/start` is here because a
-     * person being invited has no access yet — the command itself decides whether to admit them.
+     * Commands that run without consulting the {@code AuthInterceptor} — typically an entry point such
+     * as {@code start} that must run before the caller can be recognized. Empty by default.
      */
-    private List<String> permitCommands = List.of("start");
+    private List<String> permitCommands = List.of();
 }
