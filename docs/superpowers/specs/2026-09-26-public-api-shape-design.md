@@ -94,7 +94,7 @@ public interface CommandContext {
     User getUser();                                  // sender of the command update (as AuthInterceptor left it); null if none
     String getCommand();                             // null for a bare update (text/document/contact outside a command)
     List<String> getAnswers();                       // accumulated + pending answers, unmodifiable
-    UpdateWrapper getCommandUpdate();
+    UpdateWrapper getCommandUpdate();                // the update that opened the context: the command, or the bare update itself
     Optional<UpdateWrapper> getCurrentUpdate();      // latest update of the conversation
     Optional<MaybeInaccessibleMessage> getCallbackMessage(); // current update's callback message, else the command update's
     DynamicParameters getDynamicParams();
@@ -123,8 +123,12 @@ exceptions) and `ParameterRequest.getContext()` expose `CommandContext`.
 conversation.
 
 **Lifecycle fix.** `/help` (whether requested, the unknown-command fallback, or the default guard
-denial) and bare-update dispatch now close their context, so the chat's stream completes at once
-instead of holding a `flatMap` slot until `chat-idle-ttl`.
+denial) now closes its context, so the chat's stream completes at once instead of holding a
+`flatMap` slot until `chat-idle-ttl`. Bare-update dispatch deliberately does **not** close: closing
+cancels the chat's group, and updates already queued behind it — a user sending several documents
+or forwarding several messages at once — would be dropped (the accepted teardown drop-race of the
+inbound-bus spec is only safe at human typing speed). Instead each bare update gets a fresh
+`ConversationState`, so bare updates no longer accumulate in one context until the TTL.
 
 ### 4. i18n keyed on `User`
 
@@ -204,7 +208,8 @@ Unchanged from subproject A, except that error paths now carry `CommandContext` 
   - `LocaleProvider` receives the `User` (and `null` for out-of-band resolution).
   - A command addressed to this bot runs; one addressed to another bot is ignored.
   - Parser grammar cases, including `#`, `/a?b?c`, `@addressee` with and without answers.
-  - `/help` and a bare-update dispatch complete the chat stream immediately.
+  - `/help` completes the chat stream immediately; consecutive bare updates are each dispatched
+    with their own context and do not complete the stream.
   - `permit-commands` defaults to empty, so `/start` goes through `AuthInterceptor`.
   - Auto-configuration activates under the new class name and imports entry.
 - After implementation: build `family-iot` against the local `0.1.0-SNAPSHOT` to confirm the
