@@ -120,7 +120,8 @@ public class SessionBotAutoConfiguration {
             contactHandlers.orderedStream().toList(),
             textHandlers.orderedStream().toList(),
             properties.getPermitCommands(),
-            guardDeniedHandler);
+            guardDeniedHandler,
+            properties.getBotUsername());
     }
 
     @Bean

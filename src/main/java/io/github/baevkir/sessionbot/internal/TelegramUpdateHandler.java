@@ -44,6 +44,7 @@ public class TelegramUpdateHandler {
     private final List<TextHandler> textHandlers;
     private final List<String> permitCommands;
     private final GuardDeniedHandler guardDeniedHandler;
+    private final String botUsername;
 
     public TelegramUpdateHandler(
         CommandsFactory commandsFactory,
@@ -55,7 +56,7 @@ public class TelegramUpdateHandler {
         List<String> permitCommands
     ) {
         this(commandsFactory, authInterceptor, messageExecutor, documentHandlers, contactHandlers, textHandlers,
-            permitCommands, new HelpGuardDeniedHandler(commandsFactory.getHelpCommand()));
+            permitCommands, new HelpGuardDeniedHandler(commandsFactory.getHelpCommand()), null);
     }
 
     public TelegramUpdateHandler(
@@ -68,6 +69,21 @@ public class TelegramUpdateHandler {
         List<String> permitCommands,
         GuardDeniedHandler guardDeniedHandler
     ) {
+        this(commandsFactory, authInterceptor, messageExecutor, documentHandlers, contactHandlers, textHandlers,
+            permitCommands, guardDeniedHandler, null);
+    }
+
+    public TelegramUpdateHandler(
+        CommandsFactory commandsFactory,
+        AuthInterceptor authInterceptor,
+        MessageExecutor messageExecutor,
+        List<DocumentHandler> documentHandlers,
+        List<ContactHandler> contactHandlers,
+        List<TextHandler> textHandlers,
+        List<String> permitCommands,
+        GuardDeniedHandler guardDeniedHandler,
+        String botUsername
+    ) {
         this.commandsFactory = commandsFactory;
         this.authInterceptor = authInterceptor;
         this.messageExecutor = messageExecutor;
@@ -76,11 +92,13 @@ public class TelegramUpdateHandler {
         this.textHandlers = textHandlers;
         this.permitCommands = permitCommands == null ? List.of() : List.copyOf(permitCommands);
         this.guardDeniedHandler = Objects.requireNonNull(guardDeniedHandler, "guardDeniedHandler");
+        this.botUsername = botUsername;
     }
 
     public Flux<PartialBotApiMethod<?>> handleUpdates(Flux<UpdateWrapper> updates) {
         Assert.notNull(updates, "Updates is null.");
         return updates
+            .filter(this::addressedToThisBot)
             .scanWith(ConversationState::empty, this::fold)
             .skip(1) // drop the empty seed context emitted before any update
             .concatMap(context ->
@@ -103,6 +121,16 @@ public class TelegramUpdateHandler {
             return ConversationState.forCommand(context.getCommandUpdate()).addUpdate(update);
         }
         return context.addUpdate(update);
+    }
+
+    /** In a group, {@code /order@OtherBot} is meant for another bot: leave it alone. */
+    private boolean addressedToThisBot(UpdateWrapper update) {
+        var addressee = update.getAddressee();
+        if (botUsername == null || addressee.isEmpty() || addressee.get().equalsIgnoreCase(botUsername)) {
+            return true;
+        }
+        log.debug("Ignoring /{} addressed to @{} in chat {}", update.getCommand(), addressee.get(), update.getChatId());
+        return false;
     }
 
     private Flux<PartialBotApiMethod<?>> dispatch(ConversationState context) {

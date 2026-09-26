@@ -18,6 +18,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.reactivestreams.Publisher;
@@ -102,6 +104,14 @@ class TelegramUpdateHandlerTest {
             commandsFactory, auth,
             new TelegramClientMessageExecutor(telegramClient, errorHandlerFactory),
             documentHandlers, contactHandlers, textHandlers, List.of());
+    }
+
+    private TelegramUpdateHandler handlerFor(String botUsername) {
+        return new TelegramUpdateHandler(
+            commandsFactory, ALLOW,
+            new TelegramClientMessageExecutor(telegramClient, errorHandlerFactory),
+            List.of(), List.of(), List.of(), List.of(),
+            new HelpGuardDeniedHandler(commandsFactory.getHelpCommand()), botUsername);
     }
 
     private static TextHandler echoText(AtomicReference<String> received) {
@@ -544,5 +554,28 @@ class TelegramUpdateHandlerTest {
             .expectNoEvent(Duration.ofMillis(200))
             .thenCancel()
             .verify(Duration.ofSeconds(5));
+    }
+
+    @DisplayName("a group command addressed to this bot runs, whatever the case of the name")
+    @ParameterizedTest
+    @ValueSource(strings = {"/order@MyBot?buy&book", "/order@mybot?buy&book", "/order@MYBOT?buy&book", "/order@?buy&book", "/order?buy&book"})
+    void commandAddressedToThisBotRuns(String text) {
+        var handler = handlerFor("MyBot");
+
+        StepVerifier.create(handler.handleUpdates(Flux.just(Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, text))))
+                .filter(message -> message instanceof SendMessage)
+                .map(message -> ((SendMessage) message).getText()))
+            .expectNext("buy:book")
+            .verifyComplete();
+    }
+
+    @DisplayName("a group command addressed to another bot is ignored: no reply, no /help")
+    @Test
+    void commandAddressedToAnotherBotIsIgnored() {
+        var handler = handlerFor("MyBot");
+
+        StepVerifier.create(handler.handleUpdates(Flux.just(
+                Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "/order@OtherBot?buy&book")))))
+            .verifyComplete();
     }
 }
