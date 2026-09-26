@@ -8,6 +8,7 @@ import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
 import com.kb.sessionbot.errors.handler.BotAuthErrorHandler;
 import com.kb.sessionbot.errors.handler.BotCommandErrorHandler;
 import com.kb.sessionbot.errors.handler.ErrorHandlerFactory;
+import com.kb.sessionbot.guard.GuardDeniedHandler;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -79,5 +80,17 @@ class CommandsSessionBotAutoConfigurationTest {
             assertThat(context).hasNotFailed();
             assertThat(context.getBean("defaultParameterRenderer", ParameterRenderer.class)).isSameAs(custom);
         });
+    }
+
+    @Test
+    void registersADefaultGuardDeniedHandler() {
+        activeRunner.run(context -> assertThat(context).hasSingleBean(GuardDeniedHandler.class));
+    }
+
+    @Test
+    void allowsDownstreamToOverrideTheGuardDeniedHandler() {
+        GuardDeniedHandler custom = context -> Mono.empty();
+        activeRunner.withBean(GuardDeniedHandler.class, () -> custom).run(context ->
+            assertThat(context.getBean(GuardDeniedHandler.class)).isSameAs(custom));
     }
 }

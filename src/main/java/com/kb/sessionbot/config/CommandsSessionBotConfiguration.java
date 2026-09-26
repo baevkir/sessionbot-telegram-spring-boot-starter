@@ -21,6 +21,8 @@ import com.kb.sessionbot.errors.handler.BotAuthErrorHandler;
 import com.kb.sessionbot.errors.handler.BotCommandErrorHandler;
 import com.kb.sessionbot.errors.handler.ErrorHandler;
 import com.kb.sessionbot.errors.handler.ErrorHandlerFactory;
+import com.kb.sessionbot.guard.GuardDeniedHandler;
+import com.kb.sessionbot.guard.HelpGuardDeniedHandler;
 import com.kb.sessionbot.i18n.BotLabels;
 import com.kb.sessionbot.i18n.ConfiguredLocaleProvider;
 import com.kb.sessionbot.i18n.LocaleProvider;
@@ -86,6 +88,12 @@ public class CommandsSessionBotConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public GuardDeniedHandler guardDeniedHandler(HelpCommand helpCommand) {
+        return new HelpGuardDeniedHandler(helpCommand);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public TelegramUpdateHandler telegramUpdateHandler(
             CommandsFactory commandsFactory,
             AuthInterceptor authInterceptor,
@@ -93,12 +101,14 @@ public class CommandsSessionBotConfiguration {
             ObjectProvider<DocumentHandler> documentHandlers,
             ObjectProvider<ContactHandler> contactHandlers,
             ObjectProvider<TextHandler> textHandlers,
-            CommandsSessionBotProperties properties) {
+            CommandsSessionBotProperties properties,
+            GuardDeniedHandler guardDeniedHandler) {
         return new TelegramUpdateHandler(commandsFactory, authInterceptor, messageExecutor,
             documentHandlers.orderedStream().toList(),
             contactHandlers.orderedStream().toList(),
             textHandlers.orderedStream().toList(),
-            properties.getPermitCommands());
+            properties.getPermitCommands(),
+            guardDeniedHandler);
     }
 
     @Bean

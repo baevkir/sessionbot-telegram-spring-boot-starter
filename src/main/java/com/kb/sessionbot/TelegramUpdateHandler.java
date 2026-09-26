@@ -6,6 +6,9 @@ import com.kb.sessionbot.contacts.ContactHandler;
 import com.kb.sessionbot.documents.DocumentHandler;
 import com.kb.sessionbot.errors.exception.BotAuthException;
 import com.kb.sessionbot.errors.exception.BotCommandException;
+import com.kb.sessionbot.guard.CommandGuards;
+import com.kb.sessionbot.guard.GuardContext;
+import com.kb.sessionbot.guard.GuardDeniedHandler;
 import com.kb.sessionbot.model.CommandContext;
 import com.kb.sessionbot.model.ContextState;
 import com.kb.sessionbot.model.UpdateWrapper;
@@ -41,6 +44,7 @@ public class TelegramUpdateHandler {
     private final List<ContactHandler> contactHandlers;
     private final List<TextHandler> textHandlers;
     private final List<String> permitCommands;
+    private final GuardDeniedHandler guardDeniedHandler;
 
     public TelegramUpdateHandler(
         CommandsFactory commandsFactory,
@@ -51,6 +55,20 @@ public class TelegramUpdateHandler {
         List<TextHandler> textHandlers,
         List<String> permitCommands
     ) {
+        this(commandsFactory, authInterceptor, messageExecutor, documentHandlers, contactHandlers, textHandlers,
+            permitCommands, context -> commandsFactory.getHelpCommand().process(context));
+    }
+
+    public TelegramUpdateHandler(
+        CommandsFactory commandsFactory,
+        AuthInterceptor authInterceptor,
+        MessageExecutor messageExecutor,
+        List<DocumentHandler> documentHandlers,
+        List<ContactHandler> contactHandlers,
+        List<TextHandler> textHandlers,
+        List<String> permitCommands,
+        GuardDeniedHandler guardDeniedHandler
+    ) {
         this.commandsFactory = commandsFactory;
         this.authInterceptor = authInterceptor;
         this.messageExecutor = messageExecutor;
@@ -58,6 +76,7 @@ public class TelegramUpdateHandler {
         this.contactHandlers = contactHandlers;
         this.textHandlers = textHandlers;
         this.permitCommands = permitCommands == null ? List.of() : List.copyOf(permitCommands);
+        this.guardDeniedHandler = guardDeniedHandler;
     }
 
     public Flux<PartialBotApiMethod<?>> handleUpdates(Flux<UpdateWrapper> updates) {
@@ -102,7 +121,16 @@ public class TelegramUpdateHandler {
                     log.debug("Auth rejected for command '{}' in chat {} (user={})", context.getCommand(), context.getChatId(), username);
                     return Flux.error(new BotAuthException(context, "User " + username + " is unauthorized to use bot."));
                 }
-                return commandsFactory.getCommand(context.getCommand()).process(context);
+                var command = commandsFactory.getCommand(context.getCommand());
+                return CommandGuards.permits(command, GuardContext.of(context, command.getCommandIdentifier()))
+                    .<PartialBotApiMethod<?>>flatMapMany(permitted -> {
+                        if (!permitted) {
+                            log.debug("Guard denied command '{}' in chat {}", context.getCommand(), context.getChatId());
+                            context.close();
+                            return Flux.<PartialBotApiMethod<?>>from(guardDeniedHandler.onDenied(context));
+                        }
+                        return Flux.<PartialBotApiMethod<?>>from(command.process(context));
+                    });
             })
             .doOnNext(message -> {
                 var result = messageExecutor.execute(message);
