@@ -134,9 +134,9 @@ class MessageDescriptorTest {
 
         @Test
         void textThatLooksLikeASkipControlIsJustAnAnswer() {
-            var descriptor = MessageDescriptor.parseTyped("x#scipAnswer:abc");
-            assertThat(descriptor.getAnswers()).containsExactly("x#scipAnswer:abc");
-            assertThat(descriptor.getDynamicParams().canScipAnswer(0)).isFalse();
+            var descriptor = MessageDescriptor.parseTyped("x#skip:abc");
+            assertThat(descriptor.getAnswers()).containsExactly("x#skip:abc");
+            assertThat(descriptor.getDynamicParams().canSkipAnswer(0)).isFalse();
         }
     }
 

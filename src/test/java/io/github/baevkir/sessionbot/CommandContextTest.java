@@ -91,10 +91,10 @@ class CommandContextTest {
     @DisplayName("getDynamicParams reads the current update, falling back to the command update")
     void dynamicParamsFallback() {
         var context = CommandContext.create(Fixtures.buttonCommandWrapper("/order#approved"));
-        assertThat(context.getDynamicParams().commandApproved()).isTrue();
+        assertThat(context.getDynamicParams().hasParam("approved")).isTrue();
 
         context.addUpdate(Fixtures.answerWrapper(2, 100, "book#initiator:alice"));
-        assertThat(context.getDynamicParams().getInitiator()).isEqualTo("alice");
+        assertThat(context.getDynamicParams().getParam("initiator")).isEqualTo("alice");
     }
 
     @Test

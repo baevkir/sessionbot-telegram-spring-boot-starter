@@ -83,16 +83,8 @@ public class CommandBuilder {
         return addParam(REFRESH_CONTEXT_DYNAMIC_PARAM);
     }
 
-    public CommandBuilder scipAnswer(int index) {
-        return addParam(SCIP_ANSWER_DYNAMIC_PARAM, String.valueOf(index));
-    }
-
-    public CommandBuilder commandApproved() {
-        return addParam(APPROVED_DYNAMIC_PARAM);
-    }
-
-    public CommandBuilder setInitiator(String name) {
-        return addParam(INITIATOR_DYNAMIC_PARAM, name);
+    public CommandBuilder skipAnswer(int index) {
+        return addParam(SKIP_ANSWER_DYNAMIC_PARAM, String.valueOf(index));
     }
 
     public String build() {

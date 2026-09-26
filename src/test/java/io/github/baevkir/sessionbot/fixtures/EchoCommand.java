@@ -44,7 +44,7 @@ public class EchoCommand {
 
     @CommandMethod(arguments = "dyn")
     public SendMessage dyn(DynamicParameters params) {
-        return SendMessage.builder().chatId(Fixtures.CHAT_ID + "").text("dyn:" + params.commandApproved()).build();
+        return SendMessage.builder().chatId(Fixtures.CHAT_ID + "").text("dyn:" + params.hasParam("approved")).build();
     }
 
     @CommandMethod(arguments = "ctx")

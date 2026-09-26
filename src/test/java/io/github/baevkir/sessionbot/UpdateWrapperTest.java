@@ -79,7 +79,7 @@ class UpdateWrapperTest {
         void typedTextIsOneAnswerWithoutControlParams() {
             var wrapper = UpdateWrapper.wrap(Fixtures.messageUpdate(1, 1L, 1, "Tom & Jerry#approved"));
             assertThat(wrapper.getAnswers()).containsExactly("Tom & Jerry#approved");
-            assertThat(wrapper.getDynamicParams().commandApproved()).isFalse();
+            assertThat(wrapper.getDynamicParams().hasParam("approved")).isFalse();
         }
 
         @Test
@@ -87,14 +87,14 @@ class UpdateWrapperTest {
             var wrapper = UpdateWrapper.wrap(Fixtures.messageUpdate(1, 1L, 1, "/order?buy#approved"));
             assertThat(wrapper.getCommand()).isEqualTo("order");
             assertThat(wrapper.getAnswers()).containsExactly("buy");
-            assertThat(wrapper.getDynamicParams().commandApproved()).isFalse();
+            assertThat(wrapper.getDynamicParams().hasParam("approved")).isFalse();
         }
 
         @Test
         void callbackDataCarriesAnswersAndControlParams() {
             var wrapper = UpdateWrapper.wrap(Fixtures.callbackUpdate(2, 1L, 1, "buy&book#approved"));
             assertThat(wrapper.getAnswers()).containsExactly("buy", "book");
-            assertThat(wrapper.getDynamicParams().commandApproved()).isTrue();
+            assertThat(wrapper.getDynamicParams().hasParam("approved")).isTrue();
         }
     }
 

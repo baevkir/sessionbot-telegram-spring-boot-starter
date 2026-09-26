@@ -18,21 +18,21 @@ class DynamicParametersTest {
         var params = DynamicParameters.empty();
         assertThat(params.isEmpty()).isTrue();
         assertThat(params.needRefreshContext()).isFalse();
-        assertThat(params.commandApproved()).isFalse();
-        assertThat(params.canScipAnswer(0)).isFalse();
-        assertThat(params.getInitiator()).isNull();
+        assertThat(params.hasParam("approved")).isFalse();
+        assertThat(params.canSkipAnswer(0)).isFalse();
+        assertThat(params.getParam("initiator")).isNull();
     }
 
     @Nested
-    @DisplayName("canScipAnswer")
-    class CanScip {
+    @DisplayName("canSkipAnswer")
+    class CanSkip {
 
         @Test
-        void falseWhenScipKeyAbsent() {
-            assertThat(DynamicParameters.create(Map.of("other", "1")).canScipAnswer(0)).isFalse();
+        void falseWhenSkipKeyAbsent() {
+            assertThat(DynamicParameters.create(Map.of("other", "1")).canSkipAnswer(0)).isFalse();
         }
 
-        @ParameterizedTest(name = "scipAnswer={0}, query index={1} -> {2}")
+        @ParameterizedTest(name = "skip={0}, query index={1} -> {2}")
         @CsvSource({
             "2, 0, true",
             "2, 1, true",
@@ -42,13 +42,13 @@ class DynamicParametersTest {
             "0, 1, false"
         })
         void allowsSkipWhenAllowedIndexAtLeastQueried(String allowed, int index, boolean expected) {
-            var params = DynamicParameters.create(Map.of("scipAnswer", allowed));
-            assertThat(params.canScipAnswer(index)).isEqualTo(expected);
+            var params = DynamicParameters.create(Map.of("skip", allowed));
+            assertThat(params.canSkipAnswer(index)).isEqualTo(expected);
         }
 
         @Test
         void nonNumericIndexDeniesSkipInsteadOfThrowing() {
-            assertThat(DynamicParameters.create(Map.of("scipAnswer", "abc")).canScipAnswer(0)).isFalse();
+            assertThat(DynamicParameters.create(Map.of("skip", "abc")).canSkipAnswer(0)).isFalse();
         }
     }
 
@@ -60,14 +60,14 @@ class DynamicParametersTest {
 
     @Test
     void commandApprovedIsKeyPresence() {
-        assertThat(DynamicParameters.create(Map.of("approved", "")).commandApproved()).isTrue();
-        assertThat(DynamicParameters.create(Map.of("x", "y")).commandApproved()).isFalse();
+        assertThat(DynamicParameters.create(Map.of("approved", "")).hasParam("approved")).isTrue();
+        assertThat(DynamicParameters.create(Map.of("x", "y")).hasParam("approved")).isFalse();
     }
 
     @Test
     void getInitiatorReturnsRawValueOrNull() {
-        assertThat(DynamicParameters.create(Map.of("initiator", "alice")).getInitiator()).isEqualTo("alice");
-        assertThat(DynamicParameters.create(Map.of("x", "y")).getInitiator()).isNull();
+        assertThat(DynamicParameters.create(Map.of("initiator", "alice")).getParam("initiator")).isEqualTo("alice");
+        assertThat(DynamicParameters.create(Map.of("x", "y")).getParam("initiator")).isNull();
     }
 
     @Test

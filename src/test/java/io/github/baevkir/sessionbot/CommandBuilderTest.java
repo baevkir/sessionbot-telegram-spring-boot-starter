@@ -64,18 +64,8 @@ class CommandBuilderTest {
         }
 
         @Test
-        void scipAnswerCarriesIndex() {
-            assertThat(CommandBuilder.create().scipAnswer(3).build()).isEqualTo("#scipAnswer:3");
-        }
-
-        @Test
-        void commandApprovedFlag() {
-            assertThat(CommandBuilder.create().commandApproved().build()).isEqualTo("#approved");
-        }
-
-        @Test
-        void setInitiatorCarriesName() {
-            assertThat(CommandBuilder.create().setInitiator("alice").build()).isEqualTo("#initiator:alice");
+        void skipAnswerCarriesIndex() {
+            assertThat(CommandBuilder.create().skipAnswer(3).build()).isEqualTo("#skip:3");
         }
 
         @Test

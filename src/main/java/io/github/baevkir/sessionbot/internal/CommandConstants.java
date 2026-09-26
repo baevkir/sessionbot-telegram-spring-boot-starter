@@ -12,7 +12,5 @@ public interface CommandConstants {
     String NULL_ANSWER = "null";
 
     String REFRESH_CONTEXT_DYNAMIC_PARAM = "refreshContext";
-    String SCIP_ANSWER_DYNAMIC_PARAM = "scipAnswer";
-    String APPROVED_DYNAMIC_PARAM = "approved";
-    String INITIATOR_DYNAMIC_PARAM = "initiator";
+    String SKIP_ANSWER_DYNAMIC_PARAM = "skip";
 }

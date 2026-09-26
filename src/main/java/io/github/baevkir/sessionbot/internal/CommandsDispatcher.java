@@ -88,7 +88,7 @@ public class CommandsDispatcher {
                         invocationResult.addArgument(argument.get());
                         args.add(argument.get());
                     } else {
-                        if (!parameter.isRequired() && context.getCurrentUpdate().map(update -> update.getDynamicParams().canScipAnswer(index)).orElse(false)) {
+                        if (!parameter.isRequired() && context.getCurrentUpdate().map(update -> update.getDynamicParams().canSkipAnswer(index)).orElse(false)) {
                             invocationResult.addArgument(null);
                             args.add(null);
                         } else {

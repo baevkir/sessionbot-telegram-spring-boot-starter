@@ -38,8 +38,8 @@ public class TextParameterRenderer implements ParameterRenderer {
                 InlineKeyboardRow rowInline = parameterRequest.getOptions().stream()
                     .map(option ->
                         InlineKeyboardButton.builder()
-                            .text(labels.resolve(option.getValue(), parameterRequest.getContext()))
-                            .callbackData(CommandBuilder.create().addAnswer(option.getKey()).build())
+                            .text(labels.resolve(option.label(), parameterRequest.getContext()))
+                            .callbackData(CommandBuilder.create().addAnswer(option.value()).build())
                             .build()
                     )
                     .collect(Collectors.toCollection(InlineKeyboardRow::new));
@@ -50,7 +50,7 @@ public class TextParameterRenderer implements ParameterRenderer {
                 rowsInline.add(
                     new InlineKeyboardRow(InlineKeyboardButton.builder()
                         .text(labels.skip(parameterRequest.getContext()))
-                        .callbackData(CommandBuilder.create().scipAnswer(parameterRequest.getIndex()).build())
+                        .callbackData(CommandBuilder.create().skipAnswer(parameterRequest.getIndex()).build())
                         .build())
                 );
             }

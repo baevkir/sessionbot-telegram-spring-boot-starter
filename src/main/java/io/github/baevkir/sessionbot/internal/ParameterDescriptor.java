@@ -1,6 +1,6 @@
 package io.github.baevkir.sessionbot.internal;
 
-import io.github.baevkir.sessionbot.render.Option;
+import io.github.baevkir.sessionbot.render.ParameterOption;
 import io.github.baevkir.sessionbot.annotation.RenderingOption;
 import io.github.baevkir.sessionbot.render.ParameterRenderer;
 import lombok.AccessLevel;
@@ -12,8 +12,6 @@ import org.apache.commons.lang3.StringUtils;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Builder
 @Getter
@@ -27,7 +25,7 @@ public class ParameterDescriptor {
     private boolean required;
     private String renderer;
     private Class<? extends ParameterRenderer> rendererType;
-    private List<Option> options;
+    private List<ParameterOption> options;
 
     public static ParameterDescriptorBuilder handleParameter(Parameter parameter) {
         var builder = ParameterDescriptor.builder()
@@ -56,14 +54,10 @@ public class ParameterDescriptor {
         return builder;
     }
 
-    private static List<Option> getRenderingOptions(RenderingOption[] renderingOptions) {
+    private static List<ParameterOption> getRenderingOptions(RenderingOption[] renderingOptions) {
         return Arrays.stream(renderingOptions)
-            .map(option ->
-                Option.builder()
-                    .key(option.value())
-                    .value(Optional.ofNullable(option.displayValue()).filter(StringUtils::isNotBlank).orElse(option.value()))
-                    .build()
-            ).collect(Collectors.toList());
-
+            .map(option -> new ParameterOption(option.value(),
+                StringUtils.isNotBlank(option.displayValue()) ? option.displayValue() : option.value()))
+            .toList();
     }
 }

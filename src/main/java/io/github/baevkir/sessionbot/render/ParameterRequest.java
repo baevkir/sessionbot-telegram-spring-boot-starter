@@ -17,5 +17,5 @@ public class ParameterRequest {
     private final String text;
     private final Class<?> parameterType;
     private final boolean required;
-    private final List<Option> options;
+    private final List<ParameterOption> options;
 }

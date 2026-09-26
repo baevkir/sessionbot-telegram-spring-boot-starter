@@ -100,7 +100,7 @@ public class TimeParameterRenderer implements ParameterRenderer {
         if (!parameterRequest.isRequired()) {
             rows.add(new InlineKeyboardRow(InlineKeyboardButton.builder()
                 .text(labels.skip(parameterRequest.getContext()))
-                .callbackData(CommandBuilder.create().scipAnswer(parameterRequest.getIndex()).build())
+                .callbackData(CommandBuilder.create().skipAnswer(parameterRequest.getIndex()).build())
                 .build()));
         }
     }

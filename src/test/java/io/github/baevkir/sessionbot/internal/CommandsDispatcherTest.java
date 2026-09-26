@@ -87,11 +87,11 @@ class CommandsDispatcherTest {
         }
 
         @Test
-        void optionalSkippedWhenScipAnswerSet() {
-            // required supplied; optional missing but scipAnswer allows skipping index 2.
+        void optionalSkippedWhenSkipAnswerSet() {
+            // required supplied; optional missing but skipAnswer allows skipping index 2.
             var context = io.github.baevkir.sessionbot.CommandContext
                 .create(Fixtures.commandWrapper("/order?note&hello"))
-                .addUpdate(Fixtures.answerWrapper(2, 100, "#scipAnswer:2"));
+                .addUpdate(Fixtures.answerWrapper(2, 100, "#skip:2"));
             var result = orderDispatcher.invoke(context);
             assertThat(result.hasErrors()).isFalse();
             assertThat(result.getInvocationArgument()).isNull();

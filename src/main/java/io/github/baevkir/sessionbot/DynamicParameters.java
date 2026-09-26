@@ -39,22 +39,14 @@ public class DynamicParameters {
         return params.containsKey(REFRESH_CONTEXT_DYNAMIC_PARAM);
     }
 
-    public boolean canScipAnswer(int index) {
-        if (!params.containsKey(SCIP_ANSWER_DYNAMIC_PARAM)) {
+    public boolean canSkipAnswer(int index) {
+        if (!params.containsKey(SKIP_ANSWER_DYNAMIC_PARAM)) {
             return false;
         }
         try {
-            return Integer.parseInt(params.get(SCIP_ANSWER_DYNAMIC_PARAM)) >= index;
+            return Integer.parseInt(params.get(SKIP_ANSWER_DYNAMIC_PARAM)) >= index;
         } catch (NumberFormatException ex) {
             return false;
         }
-    }
-
-    public boolean commandApproved() {
-        return params.containsKey(APPROVED_DYNAMIC_PARAM);
-    }
-
-    public String getInitiator() {
-        return params.get(INITIATOR_DYNAMIC_PARAM);
     }
 }
