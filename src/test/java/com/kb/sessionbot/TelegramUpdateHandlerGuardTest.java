@@ -6,6 +6,7 @@ import com.kb.sessionbot.commands.IBotCommand;
 import com.kb.sessionbot.fixtures.Fixtures;
 import com.kb.sessionbot.guard.CommandGuard;
 import com.kb.sessionbot.guard.GuardDeniedHandler;
+import com.kb.sessionbot.model.UpdateWrapper;
 import org.junit.jupiter.api.Test;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import reactor.core.publisher.Flux;
@@ -126,7 +127,7 @@ class TelegramUpdateHandlerGuardTest {
         return command;
     }
 
-    private static Flux<com.kb.sessionbot.model.UpdateWrapper> adminCommand() {
+    private static Flux<UpdateWrapper> adminCommand() {
         return Flux.just(Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "/admin")));
     }
 

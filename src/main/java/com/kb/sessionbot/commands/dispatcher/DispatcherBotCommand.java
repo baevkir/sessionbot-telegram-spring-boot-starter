@@ -9,6 +9,7 @@ import com.kb.sessionbot.model.ContextState;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.beans.factory.NoUniqueBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.util.Assert;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.PartialBotApiMethod;
@@ -109,6 +110,9 @@ public class DispatcherBotCommand implements IBotCommand {
     private CommandGuard resolveGuard(Class<? extends CommandGuard> type) {
         try {
             return applicationContext.getBean(type);
+        } catch (NoUniqueBeanDefinitionException ex) {
+            throw new IllegalStateException("Command '" + commandsDispatcher.getCommandId() + "' is @Guarded by "
+                + type.getName() + ", but several beans of that type exist", ex);
         } catch (NoSuchBeanDefinitionException ex) {
             throw new IllegalStateException("Command '" + commandsDispatcher.getCommandId() + "' is @Guarded by "
                 + type.getName() + ", but no bean of that type exists", ex);

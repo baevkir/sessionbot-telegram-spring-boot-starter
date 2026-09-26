@@ -18,6 +18,7 @@ import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -67,6 +68,25 @@ class CommandMenuServiceTest {
         StepVerifier.create(service(command("tasks")).reset(CHAT_ID)).verifyComplete();
 
         assertDeletedChatScope();
+    }
+
+    @Test
+    void theTelegramCallRunsOffTheSubscribersThread() {
+        var callerThreadName = Thread.currentThread().getName();
+        AtomicReference<String> executorThreadName = new AtomicReference<>();
+        MessageExecutor capturingExecutor = mock(MessageExecutor.class);
+        when(capturingExecutor.execute(any())).thenAnswer(invocation -> {
+            executorThreadName.set(Thread.currentThread().getName());
+            return null;
+        });
+        var service = new CommandMenuService(new CommandsFactory(
+            new HelpCommand(List.of(), Fixtures.labels(Locale.ENGLISH)), List.of()), capturingExecutor);
+
+        StepVerifier.create(service.reset(CHAT_ID)).verifyComplete();
+
+        assertThat(executorThreadName.get())
+            .isNotEqualTo(callerThreadName)
+            .contains("boundedElastic");
     }
 
     @Test

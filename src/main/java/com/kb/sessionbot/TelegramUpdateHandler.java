@@ -23,6 +23,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -76,7 +77,7 @@ public class TelegramUpdateHandler {
         this.contactHandlers = contactHandlers;
         this.textHandlers = textHandlers;
         this.permitCommands = permitCommands == null ? List.of() : List.copyOf(permitCommands);
-        this.guardDeniedHandler = guardDeniedHandler;
+        this.guardDeniedHandler = Objects.requireNonNull(guardDeniedHandler, "guardDeniedHandler");
     }
 
     public Flux<PartialBotApiMethod<?>> handleUpdates(Flux<UpdateWrapper> updates) {

@@ -12,6 +12,7 @@ import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeChat;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.function.Predicate;
 
@@ -22,6 +23,13 @@ import java.util.function.Predicate;
  * because guards are checked on every call. {@link #refresh} evaluates guards with {@code chatType}
  * {@code "private"}, since per-chat menus are meant for private chats; group-chat scopes are out of
  * scope for now.
+ *
+ * <p>{@link #execute} runs the blocking Telegram call on {@link Schedulers#boundedElastic()}, so
+ * calling {@link #refresh} or {@link #reset} from a Netty/WebFlux event-loop thread never blocks it.
+ * A Telegram failure is reported through the configured {@link com.kb.sessionbot.MessageExecutor}
+ * (the default, {@link com.kb.sessionbot.TelegramClientMessageExecutor}, logs it and returns
+ * {@code null}), so the {@link Mono} returned here still completes normally even when Telegram
+ * rejected the call.
  */
 public class CommandMenuService {
 
@@ -60,7 +68,8 @@ public class CommandMenuService {
     }
 
     private Mono<Void> execute(BotApiMethod<Boolean> method) {
-        return Mono.fromRunnable(() -> messageExecutor.execute(method));
+        return Mono.<Void>fromRunnable(() -> messageExecutor.execute(method))
+            .subscribeOn(Schedulers.boundedElastic());
     }
 
     private static BotCommandScopeChat chatScope(String chatId) {

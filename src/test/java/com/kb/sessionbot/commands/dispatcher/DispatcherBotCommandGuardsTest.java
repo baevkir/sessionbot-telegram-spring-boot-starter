@@ -71,4 +71,20 @@ class DispatcherBotCommandGuardsTest {
                 .hasMessageContaining(AllowGuard.class.getName());
         }
     }
+
+    @Test
+    void severalGuardBeansOfTheSameTypeFailNamingTheCommandAndTheGuardNotAsMissing() {
+        try (var context = new AnnotationConfigApplicationContext()) {
+            context.registerBean("firstAllowGuard", AllowGuard.class);
+            context.registerBean("secondAllowGuard", AllowGuard.class);
+            context.refresh();
+
+            assertThatThrownBy(() -> new DispatcherBotCommand(new GuardedCommand(), context))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("'guarded'")
+                .hasMessageContaining(AllowGuard.class.getName())
+                .hasMessageContaining("several beans of that type exist")
+                .hasCauseInstanceOf(org.springframework.beans.factory.NoUniqueBeanDefinitionException.class);
+        }
+    }
 }

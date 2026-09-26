@@ -151,9 +151,15 @@ Guards run after the `AuthInterceptor`, and on every update of the command's con
 the first — so revoking access takes effect on the caller's very next tap. An error or an empty
 result from a guard is treated as a denial, the same as returning `false`.
 
+That ordering does not hold for the fallback `/help` that answers a non-command update (plain text,
+a sticker, a photo) with no active conversation and no matching handler: that path never runs the
+`AuthInterceptor`, so a guard filtering `/help`'s command list sees the raw Telegram sender, not the
+name the interceptor would otherwise have normalized it to.
+
 When a guard denies, the configured `GuardDeniedHandler` answers instead of the command running. The
-default (`HelpGuardDeniedHandler`) replies exactly as it would to an unknown command, so a guarded
-command's existence is never revealed to a caller it denies. Override it for an explicit refusal:
+default (`HelpGuardDeniedHandler`) answers as it would to an unknown command — but the conversation
+is closed afterwards, so a follow-up plain text message reaches the `TextHandler` instead of
+producing `/help` again. Override it for an explicit refusal:
 
 ```java
 @Bean
