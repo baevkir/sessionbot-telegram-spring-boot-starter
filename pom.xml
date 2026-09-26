@@ -9,11 +9,11 @@
         <version>4.1.0</version>
     </parent>
 
-    <groupId>com.kb</groupId>
-    <artifactId>telegram-session-bot</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <groupId>io.github.baevkir</groupId>
+    <artifactId>sessionbot-telegram-spring-boot-starter</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
 
-    <name>telegram-session-bot</name>
+    <name>sessionbot-telegram-spring-boot-starter</name>
 
     <properties>
         <java.version>25</java.version>
