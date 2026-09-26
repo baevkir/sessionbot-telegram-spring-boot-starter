@@ -2,7 +2,7 @@ package io.github.baevkir.sessionbot.internal;
 
 public interface CommandConstants {
     String COMMAND_START = "/";
-    String COMMAND_PARAMETERS_SEPARATOR_REGEX = "\\?";
+    String ADDRESSEE_SEPARATOR = "@";
     String COMMAND_PARAMETERS_SEPARATOR = "?";
     String PARAMETER_SEPARATOR = "&";
     String KEY_VALUE_SEPARATOR = ":";

@@ -155,4 +155,12 @@ class UpdateWrapperTest {
         var wrapper = UpdateWrapper.wrap(Fixtures.messageUpdate(1, 42L, 100, "hello"));
         assertThat(wrapper.getDocument()).isEmpty();
     }
+
+    @Test
+    @DisplayName("getAddressee exposes the @bot a typed command names")
+    void addressee() {
+        assertThat(UpdateWrapper.wrap(Fixtures.messageUpdate(1, 1L, 1, "/order@MyBot")).getAddressee()).contains("MyBot");
+        assertThat(UpdateWrapper.wrap(Fixtures.messageUpdate(1, 1L, 1, "/order")).getAddressee()).isEmpty();
+        assertThat(UpdateWrapper.wrap(Fixtures.messageUpdate(1, 1L, 1, "hello")).getAddressee()).isEmpty();
+    }
 }

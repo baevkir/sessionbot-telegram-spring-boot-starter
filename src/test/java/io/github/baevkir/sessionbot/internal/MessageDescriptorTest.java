@@ -174,4 +174,57 @@ class MessageDescriptorTest {
                 .hasMessage("text is empty");
         }
     }
+
+    @Nested
+    @DisplayName("grammar")
+    class Grammar {
+
+        @Test
+        void commandCarriesItsAddressee() {
+            var descriptor = MessageDescriptor.parse("/order@MyBot?buy&book");
+            assertThat(descriptor.getCommand()).isEqualTo("order");
+            assertThat(descriptor.getAddressee()).isEqualTo("MyBot");
+            assertThat(descriptor.getAnswers()).containsExactly("buy", "book");
+        }
+
+        @Test
+        void commandWithoutAddresseeHasNone() {
+            assertThat(MessageDescriptor.parse("/order?buy").getAddressee()).isNull();
+        }
+
+        @Test
+        void anEmptyAddresseeCountsAsNone() {
+            var descriptor = MessageDescriptor.parse("/order@?x");
+            assertThat(descriptor.getCommand()).isEqualTo("order");
+            assertThat(descriptor.getAddressee()).isNull();
+            assertThat(descriptor.getAnswers()).containsExactly("x");
+        }
+
+        @Test
+        void aSecondQuestionMarkStaysInTheAnswer() {
+            assertThat(MessageDescriptor.parse("/a?b?c").getAnswers()).containsExactly("b?c");
+        }
+
+        @Test
+        void aLoneHashParsesToNothing() {
+            var descriptor = MessageDescriptor.parse("#");
+            assertThat(descriptor.isCommand()).isFalse();
+            assertThat(descriptor.getAnswers()).isEmpty();
+            assertThat(descriptor.getDynamicParams().isEmpty()).isTrue();
+        }
+
+        @Test
+        void aLoneSlashIsAnEmptyCommand() {
+            var descriptor = MessageDescriptor.parse("/");
+            assertThat(descriptor.isCommand()).isTrue();
+            assertThat(descriptor.getCommand()).isEmpty();
+        }
+
+        @Test
+        void typedCommandKeepsItsAddressee() {
+            var descriptor = MessageDescriptor.parseTyped("/order@MyBot#approved");
+            assertThat(descriptor.getAddressee()).isEqualTo("MyBot");
+            assertThat(descriptor.getDynamicParams().isEmpty()).isTrue();
+        }
+    }
 }

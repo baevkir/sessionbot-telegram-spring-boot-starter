@@ -67,6 +67,11 @@ public class UpdateWrapper {
         return messageDescriptor.getCommand();
     }
 
+    /** The bot a typed group command names ({@code /order@MyBot}); empty when it names none. */
+    public Optional<String> getAddressee() {
+        return Optional.ofNullable(messageDescriptor.getAddressee());
+    }
+
     public User getFrom() {
         return Optional.ofNullable(update.getMessage())
             .map(Message::getFrom)
