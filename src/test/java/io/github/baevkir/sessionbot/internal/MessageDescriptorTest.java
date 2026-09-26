@@ -70,6 +70,16 @@ class MessageDescriptorTest {
             // "/order?".split("\\?") -> ["/order"], length 1 -> empty answers.
             assertThat(MessageDescriptor.parse("/order?").getAnswers()).isEmpty();
         }
+
+        @Test
+        void aWhitespaceOnlyCommandAnswerIsKept() {
+            assertThat(MessageDescriptor.parse("/order?   ").getAnswers()).containsExactly("   ");
+        }
+
+        @Test
+        void aWhitespaceOnlyBareTextYieldsNoAnswers() {
+            assertThat(MessageDescriptor.parse("   #k").getAnswers()).isEmpty();
+        }
     }
 
     @Nested

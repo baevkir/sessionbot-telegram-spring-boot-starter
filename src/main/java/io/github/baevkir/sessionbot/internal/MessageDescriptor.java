@@ -36,8 +36,9 @@ public class MessageDescriptor {
         var paramsStart = text.indexOf(DYNAMIC_PARAMETERS_SEPARATOR);
         var head = paramsStart < 0 ? text : text.substring(0, paramsStart);
         var params = paramsStart < 0 ? "" : text.substring(paramsStart + DYNAMIC_PARAMETERS_SEPARATOR.length());
+        var isCommand = head.startsWith(COMMAND_START);
         var answersPart = head;
-        if (head.startsWith(COMMAND_START)) {
+        if (isCommand) {
             var answersStart = head.indexOf(COMMAND_PARAMETERS_SEPARATOR);
             var name = answersStart < 0 ? head.substring(COMMAND_START.length()) : head.substring(COMMAND_START.length(), answersStart);
             answersPart = answersStart < 0 ? "" : head.substring(answersStart + COMMAND_PARAMETERS_SEPARATOR.length());
@@ -46,7 +47,7 @@ public class MessageDescriptor {
             descriptor.addressee = addresseeStart < 0 ? null
                 : StringUtils.hasText(name.substring(addresseeStart + 1)) ? name.substring(addresseeStart + 1) : null;
         }
-        descriptor.answers = parseAnswers(answersPart);
+        descriptor.answers = parseAnswers(answersPart, isCommand);
         descriptor.dynamicParams = parseDynamicParams(params);
         log.debug("Parsed '{}' -> command={} addressee={} answers={} params={}",
             text, descriptor.command, descriptor.addressee, descriptor.answers, descriptor.dynamicParams);
@@ -82,8 +83,9 @@ public class MessageDescriptor {
         return command != null;
     }
 
-    private static List<String> parseAnswers(String answersPart) {
-        if (!StringUtils.hasText(answersPart)) {
+    private static List<String> parseAnswers(String answersPart, boolean isCommand) {
+        var hasAnswers = isCommand ? !answersPart.isEmpty() : StringUtils.hasText(answersPart);
+        if (!hasAnswers) {
             return List.of();
         }
         return Arrays.stream(answersPart.split(PARAMETER_SEPARATOR)).map(WireFormat::decode).toList();

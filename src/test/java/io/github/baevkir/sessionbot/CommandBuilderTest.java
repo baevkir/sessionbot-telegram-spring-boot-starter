@@ -115,6 +115,13 @@ class CommandBuilderTest {
             assertThat(descriptor.getDynamicParams().needRefreshContext()).isTrue();
             assertThat(descriptor.getDynamicParams().getParams()).containsEntry("refreshContext", "");
         }
+
+        @Test
+        void whitespaceOnlyAnswerRoundTrips() {
+            var wire = CommandBuilder.create().command("order").addAnswer("   ").build();
+            var descriptor = MessageDescriptor.parse(wire);
+            assertThat(descriptor.getAnswers()).containsExactly("   ");
+        }
     }
 
     @Nested
