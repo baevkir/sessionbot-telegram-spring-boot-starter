@@ -63,8 +63,10 @@ public class OrderCommand {
 ```
 
 When an answer is missing, the matching `ParameterRenderer` prompts for it (plain text, a date
-picker, a yes/no keyboard, ...) and the command suspends until the reply arrives; the in-progress
-state lives in the `CommandContext`, not in memory, so it survives a restart.
+picker, a yes/no keyboard, ...) and the command suspends until the reply arrives. The in-progress
+state lives in a per-chat `CommandContext`, held in memory only: it does **not** survive a JVM
+restart, and an idle chat's context is evicted after `sessionbot.telegram.chat-idle-ttl`. A bot that
+needs durable multi-step state keeps it in its own storage.
 
 Inline-keyboard buttons carry their target command as a wire-format string built with
 `CommandBuilder`:
@@ -198,10 +200,17 @@ property is inert until then.
 ## Overriding beans
 
 Nearly every bean `CommandsSessionBotConfiguration` declares is `@ConditionalOnMissingBean`, so a
-consuming app overrides any of them by simply declaring its own bean of the same type (or, for the
-parameter renderers and error handlers, the same bean name). That covers `AuthInterceptor`,
-`GuardDeniedHandler`, `CommandMenuService`, `HelpCommand`, `CommandsFactory`, `TelegramClient`,
-`MessageExecutor`, `OutboundMessageBus`, `InboundUpdateBus`, the built-in `ParameterRenderer`s,
-`BotCommandErrorHandler`/`BotAuthErrorHandler`, `LocaleProvider` and `BotLabels`. A `CommandGuard`
-is not one of these beans — it is resolved by the type named in `@Guarded`, so it only needs to
-exist, under any bean name.
+consuming app overrides any of them by simply declaring its own bean of the same type — or, for the
+name-qualified ones below, the same bean name:
+
+- By type: `TelegramClient`, `TelegramBotsLongPollingApplication`, `MessageExecutor`,
+  `OutboundMessageBus`, `GuardDeniedHandler`, `CommandMenuService`, `TelegramUpdateHandler`,
+  `InboundUpdateBus`, `HelpCommand`, `CommandsFactory`, `AuthInterceptor`, `LocaleProvider`,
+  `BotLabels`.
+- By name: the built-in `ParameterRenderer`s (`defaultParameterRenderer`, `textParameterRenderer`,
+  `booleanParameterRenderer`, `dateParameterRenderer`, `timeParameterRenderer`), the default
+  `ErrorHandler`s (`botCommandErrorHandler`, `botAuthErrorHandler`) and
+  `sessionbotLabelsMessageSource` (the `MessageSource` backing built-in labels).
+
+A `CommandGuard` is not one of these beans — it is resolved by the type named in `@Guarded`, so it
+only needs to exist, under any bean name.
