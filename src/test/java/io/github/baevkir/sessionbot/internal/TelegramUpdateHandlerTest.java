@@ -1,6 +1,7 @@
 package io.github.baevkir.sessionbot.internal;
 
 import io.github.baevkir.sessionbot.AuthInterceptor;
+import io.github.baevkir.sessionbot.UpdateWrapper;
 import io.github.baevkir.sessionbot.handler.ContactHandler;
 import io.github.baevkir.sessionbot.handler.DocumentHandler;
 import io.github.baevkir.sessionbot.error.BotAuthException;
@@ -34,8 +35,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -464,5 +467,43 @@ class TelegramUpdateHandlerTest {
         StepVerifier.create(handler.handleUpdates(updates))
             .verifyError(BotAuthException.class);
         assertThat(received.get()).isNull();
+    }
+
+    @DisplayName("/help completes the chat's stream at once instead of holding it until the idle TTL")
+    @Test
+    void helpCompletesTheChatStream() {
+        var handler = handler(ALLOW, List.of(), List.of());
+        var updates = Flux.concat(
+            Flux.just(Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "/help"))),
+            Flux.<UpdateWrapper>never());
+
+        StepVerifier.create(handler.handleUpdates(updates))
+            .expectNextCount(1)
+            .expectComplete()
+            .verify(Duration.ofSeconds(5));
+    }
+
+    @DisplayName("consecutive bare updates are each dispatched and do not complete the chat's stream")
+    @Test
+    void consecutiveBareUpdatesAreAllDispatched() {
+        var received = new CopyOnWriteArrayList<String>();
+        TextHandler collecting = (context, text) -> {
+            received.add(text);
+            return Flux.<PartialBotApiMethod<?>>just(SendMessage.builder().chatId(context.getChatId()).text("got " + text).build());
+        };
+        var handler = handler(ALLOW, List.of(), List.of(collecting));
+        var updates = Flux.concat(
+            Flux.just(
+                Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "first")),
+                Fixtures.wrap(Fixtures.messageUpdate(2, Fixtures.CHAT_ID, 101, "second")),
+                Fixtures.wrap(Fixtures.messageUpdate(3, Fixtures.CHAT_ID, 102, "third"))),
+            Flux.<UpdateWrapper>never());
+
+        StepVerifier.create(handler.handleUpdates(updates))
+            .expectNextCount(3)
+            .expectNoEvent(Duration.ofMillis(200))
+            .thenCancel()
+            .verify(Duration.ofSeconds(5));
+        assertThat(received).containsExactly("first", "second", "third");
     }
 }

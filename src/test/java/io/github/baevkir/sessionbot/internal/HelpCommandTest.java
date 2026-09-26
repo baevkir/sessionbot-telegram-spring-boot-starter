@@ -84,6 +84,16 @@ class HelpCommandTest {
             .verifyComplete();
     }
 
+    @Test
+    void processClosesTheConversation() {
+        var help = new HelpCommand(List.of(), Fixtures.labels(Locale.ENGLISH));
+        var conversation = Fixtures.contextFor("/help");
+
+        StepVerifier.create(Flux.from(help.process(conversation))).expectNextCount(1).verifyComplete();
+
+        assertThat(conversation.getState()).isEqualTo(ContextState.close);
+    }
+
     private static RegisteredCommand command(String identifier, CommandGuard... guards) {
         RegisteredCommand command = mock(RegisteredCommand.class);
         when(command.getCommandIdentifier()).thenReturn(identifier);

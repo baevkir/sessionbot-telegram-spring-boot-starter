@@ -44,6 +44,7 @@ public class HelpCommand implements RegisteredCommand {
 
     @Override
     public Publisher<? extends PartialBotApiMethod<?>> process(ConversationState conversation) {
+        conversation.close();
         return render(conversation);
     }
 
