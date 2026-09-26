@@ -9,11 +9,11 @@ import org.reactivestreams.Publisher;
 import org.telegram.telegrambots.meta.api.methods.ParseMode;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.User;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 @Slf4j
@@ -38,8 +38,8 @@ public class HelpCommand implements RegisteredCommand {
     }
 
     @Override
-    public String getDescription(String userName) {
-        return labels.helpDescription(userName);
+    public String getDescription(User user) {
+        return labels.helpDescription(user);
     }
 
     @Override
@@ -50,7 +50,7 @@ public class HelpCommand implements RegisteredCommand {
 
     /** The help message for {@code commandContext}'s caller, listing only commands their guards permit. */
     public Publisher<? extends PartialBotApiMethod<?>> render(CommandContext commandContext) {
-        var userName = userName(commandContext);
+        var user = commandContext.getUser();
         return Flux.fromIterable(botCommands)
             .filter(Predicate.not(RegisteredCommand::hidden))
             .concatMap(botCommand -> CommandGuards.permits(botCommand, GuardContext.of(commandContext, botCommand.getCommandIdentifier()))
@@ -60,8 +60,8 @@ public class HelpCommand implements RegisteredCommand {
             .map(visibleCommands -> {
                 StringBuilder helpMessageBuilder = new StringBuilder("<b>").append(labels.helpTitle(commandContext)).append("</b>\n");
                 helpMessageBuilder.append(labels.helpIntro(commandContext)).append("\n\n");
-                helpMessageBuilder.append(getCommandPresenter(this, userName)).append("\n\n");
-                visibleCommands.forEach(botCommand -> helpMessageBuilder.append(getCommandPresenter(botCommand, userName)).append("\n\n"));
+                helpMessageBuilder.append(getCommandPresenter(this, user)).append("\n\n");
+                visibleCommands.forEach(botCommand -> helpMessageBuilder.append(getCommandPresenter(botCommand, user)).append("\n\n"));
                 return SendMessage.builder()
                     .chatId(commandContext.getChatId())
                     .parseMode(ParseMode.HTML)
@@ -70,16 +70,8 @@ public class HelpCommand implements RegisteredCommand {
             });
     }
 
-    private String getCommandPresenter(RegisteredCommand command, String userName) {
+    private String getCommandPresenter(RegisteredCommand command, User user) {
             return "<b>" + COMMAND_INIT_CHARACTER + TelegramHtml.escape(command.getCommandIdentifier()) +
-                    "</b>\n" + TelegramHtml.escape(command.getDescription(userName));
-    }
-
-    private String userName(CommandContext context) {
-        return Optional.ofNullable(context.getCommandUpdate())
-            .or(context::getCurrentUpdate)
-            .map(update -> update.getFrom())
-            .map(user -> user.getUserName())
-            .orElse(null);
+                    "</b>\n" + TelegramHtml.escape(command.getDescription(user));
     }
 }

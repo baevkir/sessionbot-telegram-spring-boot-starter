@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.MessageSource;
 import org.springframework.context.support.ResourceBundleMessageSource;
+import org.telegram.telegrambots.meta.api.objects.User;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -56,8 +57,8 @@ class I18nAutoConfigurationTest {
             config.sessionbotLabelsMessageSource(withParent(consumer)),
             config.localeProvider(new SessionBotProperties()));
 
-        assertThat(labels.resolve("{consumer.greeting}", (String) null)).isEqualTo("Hello");
-        assertThat(labels.resolve("{missing.key:fallback}", (String) null)).isEqualTo("fallback");
+        assertThat(labels.resolve("{consumer.greeting}", (User) null)).isEqualTo("Hello");
+        assertThat(labels.resolve("{missing.key:fallback}", (User) null)).isEqualTo("fallback");
     }
 
     private static ObjectProvider<MessageSource> noParent() {

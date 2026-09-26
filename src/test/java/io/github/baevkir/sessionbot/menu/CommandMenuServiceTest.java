@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -95,7 +96,7 @@ class CommandMenuServiceTest {
 
         StepVerifier.create(service(admin).refresh(CHAT_ID, Fixtures.user("tester"))).verifyComplete();
 
-        verify(admin).getDescription("tester");
+        verify(admin).getDescription(argThat(user -> user != null && "tester".equals(user.getUserName())));
     }
 
     private CommandMenuService service(RegisteredCommand... commands) {

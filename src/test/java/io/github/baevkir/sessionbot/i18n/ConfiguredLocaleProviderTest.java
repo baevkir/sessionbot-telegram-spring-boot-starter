@@ -1,5 +1,6 @@
 package io.github.baevkir.sessionbot.i18n;
 
+import io.github.baevkir.sessionbot.fixtures.Fixtures;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -14,7 +15,7 @@ class ConfiguredLocaleProviderTest {
     void returnsConfiguredLocale() {
         var provider = new ConfiguredLocaleProvider(Locale.forLanguageTag("uk"));
 
-        assertThat(provider.getLocale("alice")).isEqualTo(Locale.forLanguageTag("uk"));
+        assertThat(provider.getLocale(Fixtures.user("alice"))).isEqualTo(Locale.forLanguageTag("uk"));
         assertThat(provider.getLocale(null)).isEqualTo(Locale.forLanguageTag("uk"));
     }
 }

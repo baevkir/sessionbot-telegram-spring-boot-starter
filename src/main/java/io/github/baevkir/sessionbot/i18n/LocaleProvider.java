@@ -1,12 +1,14 @@
 package io.github.baevkir.sessionbot.i18n;
 
+import org.telegram.telegrambots.meta.api.objects.User;
+
 import java.util.Locale;
 
-/** Resolves the bot's language for a given user. */
+/** Resolves the bot's language for a caller. */
 public interface LocaleProvider {
     /**
-     * @param userName the Telegram user name (from {@code update.getFrom().getUserName()}); may be
-     *                 null when the update has no sender. Implementations must tolerate null.
+     * @param user the Telegram user the text is for; {@code null} for bot-wide text (the default command
+     *             menu, out-of-band messages with no recipient). Implementations must tolerate null.
      */
-    Locale getLocale(String userName);
+    Locale getLocale(User user);
 }

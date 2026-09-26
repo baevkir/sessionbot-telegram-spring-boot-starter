@@ -1,5 +1,6 @@
 package io.github.baevkir.sessionbot.internal;
 
+import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 
 import java.util.List;
@@ -17,14 +18,14 @@ public final class CommandMenus {
     public static List<BotCommand> defaultCommands(List<RegisteredCommand> commands) {
         return toBotCommands(commands.stream()
             .filter(command -> !command.hidden() && command.guards().isEmpty())
-            .toList(), null);
+            .toList(), (User) null);
     }
 
-    public static List<BotCommand> toBotCommands(List<RegisteredCommand> commands, String userName) {
+    public static List<BotCommand> toBotCommands(List<RegisteredCommand> commands, User user) {
         return commands.stream()
             .<BotCommand>map(command -> BotCommand.builder()
                 .command(command.getCommandIdentifier())
-                .description(command.getDescription(userName))
+                .description(command.getDescription(user))
                 .build())
             .toList();
     }

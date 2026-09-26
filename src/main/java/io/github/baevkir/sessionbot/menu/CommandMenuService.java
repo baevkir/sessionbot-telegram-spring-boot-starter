@@ -58,7 +58,7 @@ public class CommandMenuService {
             .flatMap(permitted -> permitted.stream().anyMatch(command -> !command.guards().isEmpty())
                 ? execute(SetMyCommands.builder()
                     .scope(chatScope(chatId))
-                    .commands(CommandMenus.toBotCommands(permitted, user == null ? null : user.getUserName()))
+                    .commands(CommandMenus.toBotCommands(permitted, user))
                     .build())
                 : reset(chatId));
     }

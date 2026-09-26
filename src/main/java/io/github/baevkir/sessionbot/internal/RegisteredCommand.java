@@ -3,6 +3,7 @@ package io.github.baevkir.sessionbot.internal;
 import io.github.baevkir.sessionbot.guard.CommandGuard;
 import org.reactivestreams.Publisher;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.PartialBotApiMethod;
+import org.telegram.telegrambots.meta.api.objects.User;
 
 import java.util.List;
 
@@ -18,11 +19,11 @@ public interface RegisteredCommand {
     /**
      * Get the description of this command, localized for the given user.
      *
-     * @param userName the Telegram user name to resolve the language for; {@code null} for the
-     *                 bot-wide/configured language (e.g. the startup command list, which has no user)
+     * @param user the caller to localize for; {@code null} for the bot-wide language (the default
+     *             command menu)
      * @return the description as String
      */
-    String getDescription(String userName);
+    String getDescription(User user);
 
     /**
      * @return the true if bot command should not show in help

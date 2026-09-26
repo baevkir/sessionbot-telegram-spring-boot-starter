@@ -11,6 +11,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.util.Assert;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
+import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.message.MaybeInaccessibleMessage;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import reactor.core.publisher.Flux;
@@ -89,9 +90,9 @@ public class DispatcherBotCommand implements RegisteredCommand {
     }
 
     @Override
-    public String getDescription(String userName) {
+    public String getDescription(User user) {
         return applicationContext.getBean(BotLabels.class)
-            .resolve(commandsDispatcher.getCommandDescription(), userName);
+            .resolve(commandsDispatcher.getCommandDescription(), user);
     }
 
     @Override
