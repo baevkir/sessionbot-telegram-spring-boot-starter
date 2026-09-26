@@ -5,6 +5,7 @@ import com.kb.sessionbot.commands.dispatcher.parameters.DateParameterRenderer;
 import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
 import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRendererFactory;
 import com.kb.sessionbot.commands.dispatcher.parameters.TextParameterRenderer;
+import com.kb.sessionbot.commands.dispatcher.parameters.TimeParameterRenderer;
 import com.kb.sessionbot.i18n.BotLabels;
 import com.kb.sessionbot.i18n.ConfiguredLocaleProvider;
 import org.springframework.context.annotation.Bean;
@@ -51,10 +52,16 @@ public class FixtureCommandConfig {
     }
 
     @Bean
+    public ParameterRenderer timeParameterRenderer(BotLabels botLabels) {
+        return new TimeParameterRenderer(botLabels);
+    }
+
+    @Bean
     public ParameterRenderer defaultParameterRenderer(
         ParameterRenderer textParameterRenderer,
         ParameterRenderer dateParameterRenderer,
-        ParameterRenderer booleanParameterRenderer) {
-        return new ParameterRendererFactory(textParameterRenderer, dateParameterRenderer, booleanParameterRenderer);
+        ParameterRenderer booleanParameterRenderer,
+        ParameterRenderer timeParameterRenderer) {
+        return new ParameterRendererFactory(textParameterRenderer, dateParameterRenderer, booleanParameterRenderer, timeParameterRenderer);
     }
 }

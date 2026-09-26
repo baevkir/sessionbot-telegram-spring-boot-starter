@@ -5,6 +5,7 @@ import com.kb.sessionbot.commands.CommandsFactory;
 import com.kb.sessionbot.commands.HelpCommand;
 import com.kb.sessionbot.commands.IBotCommand;
 import com.kb.sessionbot.commands.dispatcher.DispatcherBotCommand;
+import com.kb.sessionbot.contacts.ContactHandler;
 import com.kb.sessionbot.documents.DocumentHandler;
 import com.kb.sessionbot.errors.exception.BotAuthException;
 import com.kb.sessionbot.errors.handler.BotAuthErrorHandler;
@@ -16,6 +17,7 @@ import com.kb.sessionbot.fixtures.Fixtures;
 import com.kb.sessionbot.fixtures.FixtureCommandConfig;
 import com.kb.sessionbot.fixtures.OrderCommand;
 import com.kb.sessionbot.model.CommandContext;
+import com.kb.sessionbot.text.TextHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,7 +29,11 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Contact;
 import org.telegram.telegrambots.meta.api.objects.Document;
+import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.chat.Chat;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -35,6 +41,7 @@ import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -82,10 +89,27 @@ class TelegramUpdateHandlerTest {
     }
 
     private TelegramUpdateHandler handler(AuthInterceptor auth, List<DocumentHandler> documentHandlers) {
+        return handler(auth, documentHandlers, List.of());
+    }
+
+    private TelegramUpdateHandler handler(AuthInterceptor auth, List<DocumentHandler> documentHandlers,
+                                          List<TextHandler> textHandlers) {
+        return handler(auth, documentHandlers, List.of(), textHandlers);
+    }
+
+    private TelegramUpdateHandler handler(AuthInterceptor auth, List<DocumentHandler> documentHandlers,
+                                          List<ContactHandler> contactHandlers, List<TextHandler> textHandlers) {
         return new TelegramUpdateHandler(
             commandsFactory, auth,
             new TelegramClientMessageExecutor(telegramClient, errorHandlerFactory),
-            documentHandlers);
+            documentHandlers, contactHandlers, textHandlers, List.of());
+    }
+
+    private static TextHandler echoText(AtomicReference<String> received) {
+        return (context, text) -> {
+            received.set(text);
+            return Mono.just(SendMessage.builder().chatId(context.getChatId()).text("got: " + text).build());
+        };
     }
 
     @DisplayName("command update completes and emits its SendMessage response")
@@ -308,5 +332,141 @@ class TelegramUpdateHandlerTest {
 
         StepVerifier.create(handler.handleUpdates(updates))
             .verifyError(BotAuthException.class);
+    }
+
+    @DisplayName("bare contact routes to the matching contact handler")
+    @Test
+    void contactRoutesToMatchingHandler() {
+        ContactHandler familyHandler = new ContactHandler() {
+            @Override public boolean supports(Contact contact) { return contact.getUserId() == 555L; }
+            @Override public Publisher<PartialBotApiMethod<?>> handle(CommandContext context, Contact contact) {
+                return Mono.just(SendMessage.builder().chatId(context.getChatId()).text("invited " + contact.getUserId()).build());
+            }
+        };
+        var handler = handler(ALLOW, List.of(), List.of(familyHandler), List.of());
+        var updates = Flux.just(Fixtures.wrap(Fixtures.contactUpdate(1, Fixtures.CHAT_ID, 100, 555L)));
+
+        StepVerifier.create(handler.handleUpdates(updates))
+            .assertNext(sent -> assertThat(((SendMessage) sent).getText()).isEqualTo("invited 555"))
+            .verifyComplete();
+    }
+
+    @DisplayName("bare contact with no matching handler falls back to help")
+    @Test
+    void contactWithoutHandlerFallsBackToHelp() {
+        ContactHandler nonMatching = new ContactHandler() {
+            @Override public boolean supports(Contact contact) { return false; }
+            @Override public Publisher<PartialBotApiMethod<?>> handle(CommandContext context, Contact contact) {
+                return Mono.just(SendMessage.builder().chatId(context.getChatId()).text("never").build());
+            }
+        };
+        var handler = handler(ALLOW, List.of(), List.of(nonMatching), List.of());
+        var updates = Flux.just(Fixtures.wrap(Fixtures.contactUpdate(1, Fixtures.CHAT_ID, 100, 555L)));
+
+        StepVerifier.create(handler.handleUpdates(updates))
+            .assertNext(sent -> assertThat(sent).isInstanceOf(SendMessage.class))
+            .verifyComplete();
+    }
+
+    @DisplayName("contact routing is tried before document routing")
+    @Test
+    void contactRoutedBeforeDocument() {
+        var documentHandlerInvoked = new AtomicBoolean(false);
+        DocumentHandler documentHandler = new DocumentHandler() {
+            @Override public boolean supports(Document document) { return true; }
+            @Override public Publisher<PartialBotApiMethod<?>> handle(CommandContext context, Document document) {
+                documentHandlerInvoked.set(true);
+                return Mono.just(SendMessage.builder().chatId(context.getChatId()).text("document").build());
+            }
+        };
+        ContactHandler contactHandler = new ContactHandler() {
+            @Override public boolean supports(Contact contact) { return true; }
+            @Override public Publisher<PartialBotApiMethod<?>> handle(CommandContext context, Contact contact) {
+                return Mono.just(SendMessage.builder().chatId(context.getChatId()).text("contact").build());
+            }
+        };
+        var handler = handler(ALLOW, List.of(documentHandler), List.of(contactHandler), List.of());
+
+        var document = new Document();
+        document.setFileId("file-1");
+        document.setFileUniqueId("ufile-1");
+        document.setFileName("data.csv");
+        var contact = new Contact();
+        contact.setUserId(555L);
+        var message = Message.builder()
+            .messageId(100)
+            .chat(Chat.builder().id(Fixtures.CHAT_ID).type("private").build())
+            .from(Fixtures.user("tester"))
+            .document(document)
+            .contact(contact)
+            .build();
+        var update = new Update();
+        update.setUpdateId(1);
+        update.setMessage(message);
+        var updates = Flux.just(Fixtures.wrap(update));
+
+        StepVerifier.create(handler.handleUpdates(updates))
+            .assertNext(sent -> assertThat(((SendMessage) sent).getText()).isEqualTo("contact"))
+            .verifyComplete();
+        assertThat(documentHandlerInvoked).isFalse();
+    }
+
+    @DisplayName("bare text routes to the text handler verbatim, & and # included")
+    @Test
+    void bareTextRoutesToTheTextHandlerVerbatim() {
+        var received = new AtomicReference<String>();
+        var handler = handler(ALLOW, List.of(), List.of(echoText(received)));
+        var updates = Flux.just(Fixtures.wrap(
+            Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "Пилосос & підлога #кухня")));
+
+        StepVerifier.create(handler.handleUpdates(updates))
+            .assertNext(sent -> assertThat(((SendMessage) sent).getText()).isEqualTo("got: Пилосос & підлога #кухня"))
+            .verifyComplete();
+        assertThat(received.get()).isEqualTo("Пилосос & підлога #кухня");
+    }
+
+    @DisplayName("a command still wins over a registered text handler")
+    @Test
+    void commandWinsOverTextHandler() {
+        var received = new AtomicReference<String>();
+        var handler = handler(ALLOW, List.of(), List.of(echoText(received)));
+        var updates = Flux.just(Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "/order?buy&book")));
+
+        StepVerifier.create(handler.handleUpdates(updates)
+                .filter(message -> message instanceof SendMessage)
+                .map(message -> ((SendMessage) message).getText()))
+            .expectNext("buy:book")
+            .verifyComplete();
+        assertThat(received.get()).isNull();
+    }
+
+    @DisplayName("text typed while a command waits for an answer goes to the command, not the handler")
+    @Test
+    void textMidCommandAnswersTheCommand() {
+        var received = new AtomicReference<String>();
+        var handler = handler(ALLOW, List.of(), List.of(echoText(received)));
+        var updates = Flux.just(
+            Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "/order?buy")),
+            Fixtures.wrap(Fixtures.messageUpdate(2, Fixtures.CHAT_ID, 101, "book")));
+
+        StepVerifier.create(handler.handleUpdates(updates)
+                .filter(message -> message instanceof SendMessage)
+                .map(message -> ((SendMessage) message).getText()))
+            .expectNextMatches(text -> text.contains("product"))
+            .expectNext("buy:book")
+            .verifyComplete();
+        assertThat(received.get()).isNull();
+    }
+
+    @DisplayName("text dispatch is auth-gated")
+    @Test
+    void textDeniedByAuthErrors() {
+        var received = new AtomicReference<String>();
+        var handler = handler(DENY, List.of(), List.of(echoText(received)));
+        var updates = Flux.just(Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "Винести сміття")));
+
+        StepVerifier.create(handler.handleUpdates(updates))
+            .verifyError(BotAuthException.class);
+        assertThat(received.get()).isNull();
     }
 }

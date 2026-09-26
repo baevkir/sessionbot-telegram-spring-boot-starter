@@ -6,6 +6,7 @@ import org.springframework.context.MessageSource;
 import org.telegram.telegrambots.meta.api.objects.User;
 
 import java.time.DayOfWeek;
+import java.time.Month;
 import java.util.Optional;
 
 /**
@@ -30,6 +31,11 @@ public class BotLabels {
     public String skip(CommandContext ctx)             { return get("button.skip", ctx); }
     public String yes(CommandContext ctx)              { return get("button.yes", ctx); }
     public String no(CommandContext ctx)               { return get("button.no", ctx); }
+    public String back(CommandContext ctx)             { return get("button.back", ctx); }
+
+    public String month(CommandContext ctx, Month month) {
+        return get("month." + month.name().toLowerCase().substring(0, 3), ctx);
+    }
 
     public String missingParameter(CommandContext ctx, String field) {
         return get("param.missing", ctx, field);

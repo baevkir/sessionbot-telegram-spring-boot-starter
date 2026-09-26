@@ -7,6 +7,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
+import org.telegram.telegrambots.meta.api.objects.Contact;
 import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.message.MaybeInaccessibleMessage;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
@@ -40,6 +41,16 @@ public class UpdateWrapper {
         }
         log.error("Cannot get chat id from update id={} (type={})", update.getUpdateId(), describeType(update));
         throw new RuntimeException("Cannot get chat id from update");
+    }
+
+    public String getChatType() {
+        if (update.hasMessage()) {
+            return update.getMessage().getChat().getType();
+        }
+        if (update.hasCallbackQuery() && update.getCallbackQuery().getMessage() != null) {
+            return update.getCallbackQuery().getMessage().getChat().getType();
+        }
+        return null;
     }
 
     public Optional<Integer> getMessageId() {
@@ -77,6 +88,10 @@ public class UpdateWrapper {
 
     public Optional<Document> getDocument() {
         return Optional.ofNullable(update.getMessage()).map(Message::getDocument);
+    }
+
+    public Optional<Contact> getContact() {
+        return Optional.ofNullable(update.getMessage()).map(Message::getContact);
     }
 
     public DynamicParameters getDynamicParams() {

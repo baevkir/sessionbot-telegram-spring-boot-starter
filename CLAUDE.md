@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A **Spring Boot auto-configuration starter** (`com.kb:telegram-session-bot`) for building Telegram bots whose commands behave like multi-step conversations. A command can ask the user for missing arguments one at a time (via inline keyboards or text replies); the framework accumulates those answers into a per-chat session until the command has everything it needs to run. Published as a Maven artifact to a GitHub-hosted repo (`baevkir/library-project`, `mvn-repo` branch).
 
-Java 21, Spring Boot 3.5, Maven, Project Reactor, Lombok, `org.telegram:telegrambots-{meta,client,longpolling}` 10.0.0.
+**Intended as a public, general-purpose library**, not tied to any single consuming app. Design every API for arbitrary consumers: no assumptions about roles, users, storage or a particular bot; extension points are interfaces/annotations the consuming app implements; new features are opt-in with backward-compatible defaults, so an existing bot upgrades without code changes. Domain rules (who is an admin, which chats exist) belong in the consuming app, never here.
+
+Java 25, Spring Boot 4.1, Maven, Project Reactor, Lombok, `org.telegram:telegrambots-{meta,client,longpolling}` 10.0.0.
 
 ## Build & test
 
@@ -86,3 +88,13 @@ Built-ins: `TextParameterRenderer`, `DateParameterRenderer`, `BooleanParameterRe
 
 - `AuthInterceptor.intercept(context) → Mono<Boolean>` gates every command (default bean allows all). Return `false` → `BotAuthException`.
 - `ErrorHandlerFactory` dispatches thrown errors to `ErrorHandler` beans by exception type; `BotCommandErrorHandler` and `BotAuthErrorHandler` are the defaults. Domain exceptions: `BotCommandException`, `BotAuthException` (both carry the `CommandContext`).
+
+## Command guards
+
+- `@Guarded(MyGuard.class)` names one or more `CommandGuard` types on a `@BotCommand` class, directly or as a meta-annotation (e.g. an `@AdminOnly` that itself carries `@Guarded`). `GuardResolver.guardTypes` collects every occurrence — direct, inherited, and through meta-annotations — via `MergedAnnotations` (`SearchStrategy.TYPE_HIERARCHY`), combines them with AND, and de-duplicates repeats.
+- Guards are Spring beans, not looked up lazily: `DispatcherBotCommand`'s constructor resolves each `@Guarded` type from the `ApplicationContext` immediately, so a command guarded by a type with no matching bean fails application **startup**, not a later request.
+- `CommandGuards.permits(command, context)` is the single evaluation point — `TelegramUpdateHandler` (dispatch), `HelpCommand` (`/help`) and `CommandMenuService` (the per-chat menu) all call it, so the three can never disagree about who may see or run a command. It runs a command's guards in order and stops at the first denial; an error or an empty result from a guard is treated as a denial.
+- Per update, the order is: permit-list check → `AuthInterceptor` → `CommandGuards.permits` → `command.process()`. `permitCommands` only skips the `AuthInterceptor`; guards still run and can still deny. Guards are re-checked on every update of an in-progress command's conversation, not just the first.
+- `GuardDeniedHandler` answers a refused caller; the default (`HelpGuardDeniedHandler`) replies exactly as for an unknown command, so a guarded command's existence is never revealed. Override the bean for an explicit "no access" reply.
+- The default command menu (`CommandMenus.defaultCommands`) excludes every guarded command, since a guard is per caller and that menu is shared by every chat.
+- `CommandMenuService` is never called by the library itself — only by the application, to set or clear a chat-scoped menu (e.g. at startup or after a role change).

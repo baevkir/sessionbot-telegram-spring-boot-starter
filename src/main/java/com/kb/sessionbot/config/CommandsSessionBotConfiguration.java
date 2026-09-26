@@ -15,14 +15,19 @@ import com.kb.sessionbot.commands.IBotCommand;
 import com.kb.sessionbot.commands.dispatcher.DispatcherBotCommand;
 import com.kb.sessionbot.commands.dispatcher.annotations.BotCommand;
 import com.kb.sessionbot.commands.dispatcher.parameters.*;
+import com.kb.sessionbot.contacts.ContactHandler;
 import com.kb.sessionbot.documents.DocumentHandler;
 import com.kb.sessionbot.errors.handler.BotAuthErrorHandler;
 import com.kb.sessionbot.errors.handler.BotCommandErrorHandler;
 import com.kb.sessionbot.errors.handler.ErrorHandler;
 import com.kb.sessionbot.errors.handler.ErrorHandlerFactory;
+import com.kb.sessionbot.guard.GuardDeniedHandler;
+import com.kb.sessionbot.guard.HelpGuardDeniedHandler;
 import com.kb.sessionbot.i18n.BotLabels;
 import com.kb.sessionbot.i18n.ConfiguredLocaleProvider;
 import com.kb.sessionbot.i18n.LocaleProvider;
+import com.kb.sessionbot.menu.CommandMenuService;
+import com.kb.sessionbot.text.TextHandler;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -84,13 +89,33 @@ public class CommandsSessionBotConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public GuardDeniedHandler guardDeniedHandler(HelpCommand helpCommand) {
+        return new HelpGuardDeniedHandler(helpCommand);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public CommandMenuService commandMenuService(CommandsFactory commandsFactory, MessageExecutor messageExecutor) {
+        return new CommandMenuService(commandsFactory, messageExecutor);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public TelegramUpdateHandler telegramUpdateHandler(
             CommandsFactory commandsFactory,
             AuthInterceptor authInterceptor,
             MessageExecutor messageExecutor,
-            ObjectProvider<DocumentHandler> documentHandlers) {
+            ObjectProvider<DocumentHandler> documentHandlers,
+            ObjectProvider<ContactHandler> contactHandlers,
+            ObjectProvider<TextHandler> textHandlers,
+            CommandsSessionBotProperties properties,
+            GuardDeniedHandler guardDeniedHandler) {
         return new TelegramUpdateHandler(commandsFactory, authInterceptor, messageExecutor,
-            documentHandlers.orderedStream().toList());
+            documentHandlers.orderedStream().toList(),
+            contactHandlers.orderedStream().toList(),
+            textHandlers.orderedStream().toList(),
+            properties.getPermitCommands(),
+            guardDeniedHandler);
     }
 
     @Bean
@@ -136,8 +161,9 @@ public class CommandsSessionBotConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(name = "defaultParameterRenderer")
-    public ParameterRenderer defaultParameterRenderer(ParameterRenderer textParameterRenderer, ParameterRenderer dateParameterRenderer, ParameterRenderer booleanParameterRenderer) {
-        return new ParameterRendererFactory(textParameterRenderer, dateParameterRenderer, booleanParameterRenderer);
+    public ParameterRenderer defaultParameterRenderer(ParameterRenderer textParameterRenderer, ParameterRenderer dateParameterRenderer,
+                                                      ParameterRenderer booleanParameterRenderer, ParameterRenderer timeParameterRenderer) {
+        return new ParameterRendererFactory(textParameterRenderer, dateParameterRenderer, booleanParameterRenderer, timeParameterRenderer);
     }
 
     @Bean
@@ -156,6 +182,12 @@ public class CommandsSessionBotConfiguration {
     @ConditionalOnMissingBean(name = "dateParameterRenderer")
     public ParameterRenderer dateParameterRenderer(BotLabels botLabels) {
         return new DateParameterRenderer(botLabels);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "timeParameterRenderer")
+    public ParameterRenderer timeParameterRenderer(BotLabels botLabels) {
+        return new TimeParameterRenderer(botLabels);
     }
 
     @Bean
