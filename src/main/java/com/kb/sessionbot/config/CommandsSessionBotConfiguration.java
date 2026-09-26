@@ -26,6 +26,7 @@ import com.kb.sessionbot.guard.HelpGuardDeniedHandler;
 import com.kb.sessionbot.i18n.BotLabels;
 import com.kb.sessionbot.i18n.ConfiguredLocaleProvider;
 import com.kb.sessionbot.i18n.LocaleProvider;
+import com.kb.sessionbot.menu.CommandMenuService;
 import com.kb.sessionbot.text.TextHandler;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -90,6 +91,12 @@ public class CommandsSessionBotConfiguration {
     @ConditionalOnMissingBean
     public GuardDeniedHandler guardDeniedHandler(HelpCommand helpCommand) {
         return new HelpGuardDeniedHandler(helpCommand);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public CommandMenuService commandMenuService(CommandsFactory commandsFactory, MessageExecutor messageExecutor) {
+        return new CommandMenuService(commandsFactory, messageExecutor);
     }
 
     @Bean

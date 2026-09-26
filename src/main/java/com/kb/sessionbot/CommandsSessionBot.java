@@ -2,12 +2,12 @@ package com.kb.sessionbot;
 
 import com.kb.sessionbot.commands.CommandsFactory;
 import com.kb.sessionbot.errors.handler.ErrorHandlerFactory;
+import com.kb.sessionbot.menu.CommandMenus;
 import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.longpolling.util.LongPollingSingleThreadUpdateConsumer;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
@@ -60,9 +60,7 @@ public class CommandsSessionBot implements LongPollingSingleThreadUpdateConsumer
 
     @PostConstruct
     public void init() {
-        var setMyCommands = Flux.fromIterable(commandsFactory.getCommands())
-            .filter(command -> !command.hidden())
-            .map(command -> BotCommand.builder().command(command.getCommandIdentifier()).description(command.getDescription(null)).build())
+        var setMyCommands = Flux.fromIterable(CommandMenus.defaultCommands(commandsFactory.getCommands()))
             .collectList()
             .map(commands -> SetMyCommands.builder().commands(commands).build())
             .subscribe(messageExecutor::execute, error -> log.error("Bot pipeline terminated unexpectedly", error));
