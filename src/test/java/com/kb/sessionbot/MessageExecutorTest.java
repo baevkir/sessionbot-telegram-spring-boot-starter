@@ -13,11 +13,13 @@ import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.telegram.telegrambots.meta.api.methods.send.SendVideoNote;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.util.List;
+import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,7 +35,7 @@ class MessageExecutorTest {
     void setUp() {
         telegramClient = Mockito.mock(TelegramClient.class);
         errorHandlerFactory = new ErrorHandlerFactory(
-            List.<ErrorHandler<?>>of(new BotCommandErrorHandler(), new BotAuthErrorHandler()));
+            List.<ErrorHandler<?>>of(new BotCommandErrorHandler(Fixtures.labels(Locale.ENGLISH)), new BotAuthErrorHandler(Fixtures.labels(Locale.ENGLISH))));
         errorHandlerFactory.init();
         executor = new TelegramClientMessageExecutor(telegramClient, errorHandlerFactory);
     }
@@ -77,5 +79,20 @@ class MessageExecutorTest {
             .build());
 
         verify(telegramClient).execute(any(SendDocument.class));
+    }
+
+    @DisplayName("SendVideoNote dispatches to its typed overload instead of the unsupported branch")
+    @Test
+    void sendVideoNoteDispatchesToTypedOverload() throws Exception {
+        var sent = Fixtures.message(Fixtures.CHAT_ID, 3, "note");
+        Mockito.when(telegramClient.execute(any(SendVideoNote.class))).thenReturn(sent);
+
+        Message result = executor.execute(SendVideoNote.builder()
+            .chatId(String.valueOf(Fixtures.CHAT_ID))
+            .videoNote(new InputFile("file_id_note"))
+            .build());
+
+        assertThat(result).isSameAs(sent);
+        verify(telegramClient).execute(any(SendVideoNote.class));
     }
 }

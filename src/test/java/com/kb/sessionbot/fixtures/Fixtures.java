@@ -106,6 +106,11 @@ public final class Fixtures {
         return wrap(messageUpdate(1, CHAT_ID, 100, wire));
     }
 
+    /** A command pressed as an inline button: wire data, so it may carry dynamic params. */
+    public static UpdateWrapper buttonCommandWrapper(String wire) {
+        return wrap(callbackUpdate(1, CHAT_ID, 100, wire));
+    }
+
     public static UpdateWrapper answerWrapper(int updateId, int questionMessageId, String wire) {
         return wrap(callbackUpdate(updateId, CHAT_ID, questionMessageId, wire));
     }

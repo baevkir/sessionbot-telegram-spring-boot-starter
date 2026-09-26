@@ -43,8 +43,11 @@ public class DynamicParameters {
         if (!params.containsKey(SCIP_ANSWER_DYNAMIC_PARAM)) {
             return false;
         }
-        var allowedIndex = Integer.parseInt(params.get(SCIP_ANSWER_DYNAMIC_PARAM));
-        return allowedIndex >= index;
+        try {
+            return Integer.parseInt(params.get(SCIP_ANSWER_DYNAMIC_PARAM)) >= index;
+        } catch (NumberFormatException ex) {
+            return false;
+        }
     }
 
     public boolean commandApproved() {

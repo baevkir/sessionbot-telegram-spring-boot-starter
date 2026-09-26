@@ -45,6 +45,11 @@ class DynamicParametersTest {
             var params = DynamicParameters.create(Map.of("scipAnswer", allowed));
             assertThat(params.canScipAnswer(index)).isEqualTo(expected);
         }
+
+        @Test
+        void nonNumericIndexDeniesSkipInsteadOfThrowing() {
+            assertThat(DynamicParameters.create(Map.of("scipAnswer", "abc")).canScipAnswer(0)).isFalse();
+        }
     }
 
     @Test

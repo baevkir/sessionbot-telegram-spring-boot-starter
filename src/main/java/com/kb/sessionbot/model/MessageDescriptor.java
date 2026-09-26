@@ -1,5 +1,6 @@
 package com.kb.sessionbot.model;
 
+import com.kb.sessionbot.commands.WireFormat;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,14 +11,15 @@ import org.springframework.util.StringUtils;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.kb.sessionbot.commands.CommandConstants.*;
 
 /**
  * Parses the callback/command wire format ({@code /command?answer1&answer2#param:value})
- * into its command, answers, and dynamic parameters.
+ * into its command, answers, and dynamic parameters. Wire text comes from callback data the bot
+ * built itself; what a user types goes through {@link #parseTyped} instead, so typed text can never
+ * forge extra answers or control parameters.
  */
 @Slf4j
 @Getter
@@ -35,6 +37,23 @@ public class MessageDescriptor {
         parser.dynamicParams = parseDynamicParams(text);
         log.debug("Parsed '{}' -> command={} answers={} params={}", text, parser.command, parser.answers, parser.dynamicParams);
         return parser;
+    }
+
+    /**
+     * Parses a message the user typed. A typed command keeps its command and {@code ?}-answers but
+     * never carries dynamic parameters; any other text is one answer, verbatim.
+     */
+    public static MessageDescriptor parseTyped(String text) {
+        Assert.isTrue(StringUtils.hasText(text), "text is empty");
+        MessageDescriptor descriptor;
+        if (text.startsWith(COMMAND_START)) {
+            descriptor = parse(text);
+        } else {
+            descriptor = new MessageDescriptor();
+            descriptor.answers = List.of(text);
+        }
+        descriptor.dynamicParams = DynamicParameters.empty();
+        return descriptor;
     }
 
     /** A descriptor for updates with no wire text to parse (e.g. a bare document message). */
@@ -66,7 +85,7 @@ public class MessageDescriptor {
         if (!text.startsWith(COMMAND_START)) {
             var paramsSplit = text.split(DYNAMIC_PARAMETERS_SEPARATOR);
             if (StringUtils.hasText(paramsSplit[ 0 ])) {
-                return Arrays.asList(paramsSplit[ 0 ].split(PARAMETER_SEPARATOR));
+                return decodeAll(paramsSplit[ 0 ].split(PARAMETER_SEPARATOR));
             }
             return Collections.emptyList();
         }
@@ -75,7 +94,11 @@ public class MessageDescriptor {
             return Collections.emptyList();
         }
         var paramsSplit = commandSplit[ 1 ].split(DYNAMIC_PARAMETERS_SEPARATOR);
-        return Arrays.asList(paramsSplit[ 0 ].split(PARAMETER_SEPARATOR));
+        return decodeAll(paramsSplit[ 0 ].split(PARAMETER_SEPARATOR));
+    }
+
+    private static List<String> decodeAll(String[] values) {
+        return Arrays.stream(values).map(WireFormat::decode).toList();
     }
 
     private static DynamicParameters parseDynamicParams(String text) {
@@ -85,10 +108,12 @@ public class MessageDescriptor {
         }
         return DynamicParameters.create(
             Arrays.stream(paramsSplit[ 1 ].split(PARAMETER_SEPARATOR))
-                .map(params -> params.split(KEY_VALUE_SEPARATOR))
-                .collect(Collectors.toMap(params -> params[ 0 ], params -> params.length > 1 ? params[ 1 ] : ""))
+                .map(params -> params.split(KEY_VALUE_SEPARATOR, 2))
+                .collect(Collectors.toMap(
+                    params -> WireFormat.decode(params[ 0 ]),
+                    params -> params.length > 1 ? WireFormat.decode(params[ 1 ]) : "",
+                    (first, last) -> last))
         );
     }
-
 
 }

@@ -17,6 +17,21 @@ public class CommandsFactory {
         this.botCommands = botCommands;
     }
 
+    /** Registers the commands, failing startup when two share an identifier or one shadows {@code /help}. */
+    @PostConstruct
+    public void start() {
+        botCommands.forEach(command -> {
+            var identifier = command.getCommandIdentifier();
+            if (helpCommand.getCommandIdentifier().equals(identifier)) {
+                throw new IllegalStateException("Command '" + identifier + "' clashes with the built-in /"
+                    + identifier + " command; give it another name");
+            }
+            if (commandRegistryMap.putIfAbsent(identifier, command) != null) {
+                throw new IllegalStateException("Two commands share the identifier '" + identifier + "'");
+            }
+        });
+    }
+
     public final IBotCommand getHelpCommand() {
         return helpCommand;
     }
@@ -30,10 +45,5 @@ public class CommandsFactory {
         commands.add(helpCommand);
         commands.addAll(botCommands);
         return Collections.unmodifiableList(commands);
-    }
-
-    @PostConstruct
-    public void start() {
-        botCommands.forEach(command -> commandRegistryMap.put(command.getCommandIdentifier(), command));
     }
 }

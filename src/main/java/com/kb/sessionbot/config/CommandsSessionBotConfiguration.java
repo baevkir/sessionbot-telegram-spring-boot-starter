@@ -197,14 +197,14 @@ public class CommandsSessionBotConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(name = "botCommandErrorHandler")
-    public BotCommandErrorHandler botCommandErrorHandler() {
-        return new BotCommandErrorHandler();
+    public BotCommandErrorHandler botCommandErrorHandler(BotLabels botLabels) {
+        return new BotCommandErrorHandler(botLabels);
     }
 
     @Bean
     @ConditionalOnMissingBean(name = "botAuthErrorHandler")
-    public BotAuthErrorHandler botAuthErrorHandler() {
-        return new BotAuthErrorHandler();
+    public BotAuthErrorHandler botAuthErrorHandler(BotLabels botLabels) {
+        return new BotAuthErrorHandler(botLabels);
     }
 
 

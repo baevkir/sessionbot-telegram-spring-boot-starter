@@ -39,7 +39,11 @@ public class SinkInboundUpdateBus implements InboundUpdateBus {
                     return;
                 }
                 try {
-                    downstream.next(UpdateWrapper.wrap(update));
+                    var wrapper = UpdateWrapper.wrap(update);
+                    // Resolved here, not in groupBy's key function, so a failure is caught below:
+                    // a callback on an inline message, for one, carries no message and so no chat.
+                    wrapper.getChatId();
+                    downstream.next(wrapper);
                 } catch (RuntimeException wrapFailure) {
                     // A single malformed update must never terminate the shared root stream (every
                     // chat's updates flow through it) - log and drop instead of propagating an error.

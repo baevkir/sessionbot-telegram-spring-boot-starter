@@ -8,6 +8,8 @@ import com.kb.sessionbot.model.ParameterDescriptor;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.aop.support.AopUtils;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
@@ -24,13 +26,16 @@ public class MethodMatcher {
     private Map<String, MethodDescriptor> invokerMethods;
 
     public static MethodMatcher create(Object command) {
-        var methods = Arrays.stream(command.getClass().getMethods())
+        // Read metadata from the user class: an AOP proxy (CGLIB or JDK) does not carry the annotations.
+        // The method is then resolved against the proxy, so its advice still runs on invocation.
+        var commandType = ClassUtils.getUserClass(AopUtils.getTargetClass(command));
+        var methods = Arrays.stream(commandType.getMethods())
             .filter(method -> method.isAnnotationPresent(CommandMethod.class))
-            .peek(method -> log.debug("Find OperationMethod {} for class {}.", method, command.getClass()))
+            .peek(method -> log.debug("Find OperationMethod {} for class {}.", method, commandType))
             .map(method -> {
                 var arguments = method.getAnnotation(CommandMethod.class).arguments();
                 var builder = MethodDescriptor.builder()
-                    .method(method)
+                    .method(AopUtils.selectInvocableMethod(method, command.getClass()))
                     .arguments(arguments);
 
                 if (StringUtils.hasText(arguments)) {
@@ -61,7 +66,7 @@ public class MethodMatcher {
                 (existing, duplicate) -> {
                     throw new IllegalStateException(String.format(
                         "Duplicate @CommandMethod template '%s' in %s",
-                        existing.getArguments(), command.getClass().getName()));
+                        existing.getArguments(), commandType.getName()));
                 },
                 LinkedHashMap::new));
 

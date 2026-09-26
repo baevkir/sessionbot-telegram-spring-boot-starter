@@ -25,10 +25,8 @@ public class UpdateWrapper {
     private MessageDescriptor messageDescriptor;
 
     public static UpdateWrapper wrap(Update update) {
-        return new UpdateWrapper(
-            Objects.requireNonNull(update, "Update is null."),
-            getText(update).filter(StringUtils::hasText).map(MessageDescriptor::parse).orElseGet(MessageDescriptor::empty)
-        );
+        Objects.requireNonNull(update, "Update is null.");
+        return new UpdateWrapper(update, describe(update));
     }
 
     public String getChatId() {
@@ -98,14 +96,21 @@ public class UpdateWrapper {
         return messageDescriptor.getDynamicParams();
     }
 
-    private static Optional<String> getText(Update update) {
-        if (update.hasMessage()) {
-            return Optional.ofNullable(update.getMessage().getText());
-        }
+    /** Callback data is wire text the bot built; message text is whatever the user typed. */
+    private static MessageDescriptor describe(Update update) {
         if (update.hasCallbackQuery()) {
-            return Optional.of(update.getCallbackQuery().getData());
+            return Optional.ofNullable(update.getCallbackQuery().getData())
+                .filter(StringUtils::hasText)
+                .map(MessageDescriptor::parse)
+                .orElseGet(MessageDescriptor::empty);
         }
-        return Optional.empty();
+        if (update.hasMessage()) {
+            return Optional.ofNullable(update.getMessage().getText())
+                .filter(StringUtils::hasText)
+                .map(MessageDescriptor::parseTyped)
+                .orElseGet(MessageDescriptor::empty);
+        }
+        return MessageDescriptor.empty();
     }
 
     private static String describeType(Update update) {

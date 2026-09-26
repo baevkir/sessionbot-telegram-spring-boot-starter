@@ -73,6 +73,19 @@ class HelpCommandTest {
             .verifyComplete();
     }
 
+    @Test
+    void descriptionsAreHtmlEscaped() {
+        IBotCommand command = command("buy");
+        when(command.getDescription(any())).thenReturn("Buy <item> & pay");
+        var help = new HelpCommand(List.of(command), Fixtures.labels(Locale.ENGLISH));
+
+        StepVerifier.create(Flux.from(help.process(Fixtures.contextFor("/help"))))
+            .assertNext(result -> assertThat(((SendMessage) result).getText())
+                .contains("Buy &lt;item&gt; &amp; pay")
+                .doesNotContain("<item>"))
+            .verifyComplete();
+    }
+
     private static IBotCommand command(String identifier, CommandGuard... guards) {
         IBotCommand command = mock(IBotCommand.class);
         when(command.getCommandIdentifier()).thenReturn(identifier);

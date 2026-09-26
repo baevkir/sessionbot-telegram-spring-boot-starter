@@ -8,6 +8,7 @@ import com.kb.sessionbot.model.CommandContext;
 import com.kb.sessionbot.model.ContextState;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.NoUniqueBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
@@ -37,7 +38,7 @@ public class DispatcherBotCommand implements IBotCommand {
     public DispatcherBotCommand(Object handler, ApplicationContext applicationContext) {
         this.commandsDispatcher = new CommandsDispatcher(handler, applicationContext);
         this.applicationContext = applicationContext;
-        this.guards = GuardResolver.guardTypes(handler.getClass()).stream()
+        this.guards = GuardResolver.guardTypes(AopUtils.getTargetClass(handler)).stream()
             .map(this::resolveGuard)
             .toList();
     }

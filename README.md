@@ -79,7 +79,12 @@ InlineKeyboardButton.builder()
 ```
 
 Telegram caps callback data at 64 bytes; `CommandBuilder.build()` only logs a warning when the
-result exceeds that limit, so keep command and answer strings short.
+result exceeds that limit, so keep command and answer strings short. The builder escapes the
+characters the format reserves (`% ? & # :`), so any answer value round-trips intact.
+
+Only button presses are read as wire format. Text the user types while a command waits for input is
+taken as one answer, verbatim — `Tom & Jerry` stays a single value — and a typed command such as
+`/order?buy` may carry answers but never the control parameters (`#...`) a button can.
 
 ## Bare updates
 
@@ -217,6 +222,11 @@ name-qualified ones below, the same bean name:
   `booleanParameterRenderer`, `dateParameterRenderer`, `timeParameterRenderer`), the default
   `ErrorHandler`s (`botCommandErrorHandler`, `botAuthErrorHandler`) and
   `sessionbotLabelsMessageSource` (the `MessageSource` backing built-in labels).
+
+When a command throws, the default `botCommandErrorHandler` logs the error and replies with a
+generic, localized "something went wrong" — never the exception's own message, which may expose
+internals. To show a user a specific reply, declare an `ErrorHandler<YourException>` bean; a handler
+also covers subclasses of its exception type, and the most specific one wins.
 
 A `CommandGuard` is not one of these beans — it is resolved by the type named in `@Guarded`, so it
 only needs to exist, under any bean name.

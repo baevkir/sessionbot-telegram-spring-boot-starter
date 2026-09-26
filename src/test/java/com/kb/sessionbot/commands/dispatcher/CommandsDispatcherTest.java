@@ -162,7 +162,7 @@ class CommandsDispatcherTest {
 
         @Test
         void dynamicParameters() {
-            var result = echoDispatcher.invoke(ctx("/echo?dyn#approved"));
+            var result = echoDispatcher.invoke(CommandContext.create(Fixtures.buttonCommandWrapper("/echo?dyn#approved")));
             StepVerifier.create(result.getInvocation())
                 .assertNext(m -> assertThat(((SendMessage) m).getText()).isEqualTo("dyn:true"))
                 .verifyComplete();
@@ -210,8 +210,8 @@ class CommandsDispatcherTest {
         void routedThroughErrorHandlerFactoryProducesSendMessage() {
             var factory = new com.kb.sessionbot.errors.handler.ErrorHandlerFactory(
                 java.util.List.<com.kb.sessionbot.errors.handler.ErrorHandler<?>>of(
-                    new com.kb.sessionbot.errors.handler.BotCommandErrorHandler(),
-                    new com.kb.sessionbot.errors.handler.BotAuthErrorHandler()));
+                    new com.kb.sessionbot.errors.handler.BotCommandErrorHandler(Fixtures.labels(java.util.Locale.ENGLISH)),
+                    new com.kb.sessionbot.errors.handler.BotAuthErrorHandler(Fixtures.labels(java.util.Locale.ENGLISH))));
             factory.init();
             var ex = new com.kb.sessionbot.errors.exception.BotCommandException(
                 ctx("/order?unsupported"),

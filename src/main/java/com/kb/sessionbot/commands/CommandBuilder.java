@@ -1,6 +1,5 @@
 package com.kb.sessionbot.commands;
 
-import com.google.common.collect.Lists;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -104,16 +103,13 @@ public class CommandBuilder {
             }
         }
         if (CollectionUtils.isNotEmpty(answers)) {
-            result.append(String.join(PARAMETER_SEPARATOR, answers));
+            result.append(answers.stream().map(WireFormat::encodeAnswer).collect(Collectors.joining(PARAMETER_SEPARATOR)));
         }
         if (!params.isEmpty()) {
             result.append(DYNAMIC_PARAMETERS_SEPARATOR).append(params.entrySet().stream()
                 .map(entry -> {
-                    List<String> values = Lists.newArrayList(entry.getKey());
-                    if (entry.getValue() != null) {
-                        values.add(entry.getValue());
-                    }
-                    return String.join(KEY_VALUE_SEPARATOR, values);
+                    var key = WireFormat.encodeParam(entry.getKey());
+                    return entry.getValue() == null ? key : key + KEY_VALUE_SEPARATOR + WireFormat.encodeParam(entry.getValue());
                 })
                 .collect(Collectors.joining(PARAMETER_SEPARATOR)));
         }

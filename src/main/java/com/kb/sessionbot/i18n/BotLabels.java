@@ -32,6 +32,8 @@ public class BotLabels {
     public String yes(CommandContext ctx)              { return get("button.yes", ctx); }
     public String no(CommandContext ctx)               { return get("button.no", ctx); }
     public String back(CommandContext ctx)             { return get("button.back", ctx); }
+    public String errorGeneric(CommandContext ctx)     { return get("error.generic", ctx); }
+    public String unauthorized(CommandContext ctx)     { return get("error.unauthorized", ctx); }
 
     public String month(CommandContext ctx, Month month) {
         return get("month." + month.name().toLowerCase().substring(0, 3), ctx);

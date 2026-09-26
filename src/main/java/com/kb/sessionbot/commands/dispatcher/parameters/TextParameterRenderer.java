@@ -39,7 +39,7 @@ public class TextParameterRenderer implements ParameterRenderer {
                     .map(option ->
                         InlineKeyboardButton.builder()
                             .text(labels.resolve(option.getValue(), parameterRequest.getContext()))
-                            .callbackData(option.getKey())
+                            .callbackData(CommandBuilder.create().addAnswer(option.getKey()).build())
                             .build()
                     )
                     .collect(Collectors.toCollection(InlineKeyboardRow::new));

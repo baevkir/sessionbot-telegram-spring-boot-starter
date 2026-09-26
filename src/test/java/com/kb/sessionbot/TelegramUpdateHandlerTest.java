@@ -40,6 +40,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -71,7 +72,7 @@ class TelegramUpdateHandlerTest {
         commandsFactory.start();
 
         errorHandlerFactory = new ErrorHandlerFactory(
-            List.<ErrorHandler<?>>of(new BotCommandErrorHandler(), new BotAuthErrorHandler()));
+            List.<ErrorHandler<?>>of(new BotCommandErrorHandler(Fixtures.labels(Locale.ENGLISH)), new BotAuthErrorHandler(Fixtures.labels(Locale.ENGLISH))));
         errorHandlerFactory.init();
 
         telegramClient = Mockito.mock(TelegramClient.class);

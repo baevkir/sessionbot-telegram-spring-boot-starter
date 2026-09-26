@@ -15,6 +15,7 @@ import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -48,7 +49,7 @@ class SinkOutboundMessageBusTest {
         Mockito.when(telegramClient.execute(any(BotApiMethod.class)))
             .thenReturn(Fixtures.message(Fixtures.CHAT_ID, 999, "sent"));
         var errorHandlerFactory = new ErrorHandlerFactory(
-            List.<ErrorHandler<?>>of(new BotCommandErrorHandler(), new BotAuthErrorHandler()));
+            List.<ErrorHandler<?>>of(new BotCommandErrorHandler(Fixtures.labels(Locale.ENGLISH)), new BotAuthErrorHandler(Fixtures.labels(Locale.ENGLISH))));
         errorHandlerFactory.init();
         var executor = new TelegramClientMessageExecutor(telegramClient, errorHandlerFactory);
 

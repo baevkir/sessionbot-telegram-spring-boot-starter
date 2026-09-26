@@ -2,8 +2,8 @@ package com.kb.sessionbot.commands.dispatcher;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.kb.sessionbot.commands.CommandBuilder;
 import com.kb.sessionbot.commands.CommandConstants;
+import com.kb.sessionbot.commands.TelegramHtml;
 import com.kb.sessionbot.commands.dispatcher.annotations.BotCommand;
 import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRenderer;
 import com.kb.sessionbot.commands.dispatcher.parameters.ParameterRequest;
@@ -15,8 +15,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -44,7 +47,9 @@ public class CommandsDispatcher {
 
     public CommandsDispatcher(Object command, ApplicationContext applicationContext) {
         this.command = command;
-        var botCommand = command.getClass().getAnnotation(BotCommand.class);
+        var commandType = ClassUtils.getUserClass(AopUtils.getTargetClass(command));
+        var botCommand = AnnotatedElementUtils.findMergedAnnotation(commandType, BotCommand.class);
+        Assert.notNull(botCommand, () -> commandType.getName() + " is not annotated with @BotCommand");
         this.commandId = botCommand.value();
         this.commandDescription = botCommand.description();
         this.hidden = botCommand.hidden();
@@ -91,7 +96,7 @@ public class CommandsDispatcher {
                             invocationResult.invocationArgument = getRenderer(parameter).render(
                                 ParameterRequest.builder()
                                     .index(index)
-                                    .text(labels().missingParameter(context, labels().resolve(parameter.getDisplayName(), context)))
+                                    .text(labels().missingParameter(context, TelegramHtml.escape(labels().resolve(parameter.getDisplayName(), context))))
                                     .parameterType(parameter.getParameterType())
                                     .required(parameter.isRequired())
                                     .context(context)
@@ -187,13 +192,13 @@ public class CommandsDispatcher {
 
     private MethodDescriptor findInvokerMethod(CommandContext commandContext, InvocationResult invocationResult) {
         return methodMatcher.getMatchingMethod(commandContext).orElseGet(() -> {
-            var options = CommandBuilder.create().addAnswers(commandContext.getAnswers()).build();
+            var options = String.join(CommandConstants.PARAMETER_SEPARATOR, commandContext.getAnswers());
             log.debug("No method matched command '{}' with answers {}, rendering options prompt", commandContext.getCommand(), commandContext.getAnswers());
             invocationResult.invocationArgument = getDefaultRenderer().render(
                 ParameterRequest.builder()
                     .context(commandContext)
                     .required(true)
-                    .text(labels().unsupportedOptions(commandContext, options, commandContext.getCommand()))
+                    .text(labels().unsupportedOptions(commandContext, TelegramHtml.escape(options), TelegramHtml.escape(commandContext.getCommand())))
                     .parameterType(String.class)
                     .build()
             );

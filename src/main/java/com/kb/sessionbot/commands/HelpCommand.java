@@ -66,8 +66,8 @@ public class HelpCommand implements IBotCommand {
     }
 
     private String getCommandPresenter(IBotCommand command, String userName) {
-            return "<b>" + COMMAND_INIT_CHARACTER + command.getCommandIdentifier() +
-                    "</b>\n" + command.getDescription(userName);
+            return "<b>" + COMMAND_INIT_CHARACTER + TelegramHtml.escape(command.getCommandIdentifier()) +
+                    "</b>\n" + TelegramHtml.escape(command.getDescription(userName));
     }
 
     private String userName(CommandContext context) {

@@ -128,6 +128,33 @@ class CommandBuilderTest {
     }
 
     @Nested
+    @DisplayName("escaping reserved characters")
+    class Escaping {
+
+        @Test
+        void reservedCharactersInAnswersAndParamsAreEscaped() {
+            assertThat(CommandBuilder.create().addAnswer("Tom & Jerry").addParam("note", "a:b#c").build())
+                .isEqualTo("Tom %26 Jerry#note:a%3Ab%23c");
+        }
+
+        @Test
+        void answersWithReservedCharactersSurviveParse() {
+            var wire = CommandBuilder.create()
+                .command("order")
+                .addAnswer("Tom & Jerry")
+                .addAnswer("50% off?")
+                .addParam("note", "a:b#c&d")
+                .build();
+
+            var descriptor = MessageDescriptor.parse(wire);
+
+            assertThat(descriptor.getCommand()).isEqualTo("order");
+            assertThat(descriptor.getAnswers()).containsExactly("Tom & Jerry", "50% off?");
+            assertThat(descriptor.getDynamicParams().getParams()).containsExactly(java.util.Map.entry("note", "a:b#c&d"));
+        }
+    }
+
+    @Nested
     @DisplayName("64-byte boundary")
     class ByteBoundary {
 

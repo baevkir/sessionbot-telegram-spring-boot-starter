@@ -32,6 +32,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -62,7 +63,7 @@ class CommandsSessionBotTest {
         commandsFactory.start();
 
         errorHandlerFactory = new ErrorHandlerFactory(
-            List.<ErrorHandler<?>>of(new BotCommandErrorHandler(), new BotAuthErrorHandler()));
+            List.<ErrorHandler<?>>of(new BotCommandErrorHandler(Fixtures.labels(Locale.ENGLISH)), new BotAuthErrorHandler(Fixtures.labels(Locale.ENGLISH))));
         errorHandlerFactory.init();
 
         telegramClient = Mockito.mock(TelegramClient.class);
@@ -133,7 +134,7 @@ class CommandsSessionBotTest {
         // SetMyCommands at startup + the error handler's reply for the failed document import.
         verify(telegramClient, timeout(2000).atLeast(2)).execute(executed.capture());
         assertThat(executed.getAllValues())
-            .anyMatch(m -> m instanceof SendMessage && "boom".equals(((SendMessage) m).getText()));
+            .anyMatch(m -> m instanceof SendMessage && "Something went wrong. Please try again later.".equals(((SendMessage) m).getText()));
     }
 
     @DisplayName("out-of-band messages pushed via OutboundMessageBus execute through the coordinator")

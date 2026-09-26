@@ -114,6 +114,55 @@ class MessageDescriptorTest {
     }
 
     @Nested
+    @DisplayName("typed text")
+    class TypedText {
+
+        @Test
+        void plainTextIsOneVerbatimAnswer() {
+            var descriptor = MessageDescriptor.parseTyped("Tom & Jerry #approved");
+            assertThat(descriptor.isCommand()).isFalse();
+            assertThat(descriptor.getAnswers()).containsExactly("Tom & Jerry #approved");
+            assertThat(descriptor.getDynamicParams().isEmpty()).isTrue();
+        }
+
+        @Test
+        void typedCommandKeepsAnswersButDropsDynamicParams() {
+            var descriptor = MessageDescriptor.parseTyped("/order?buy&book#approved&initiator:admin");
+            assertThat(descriptor.getCommand()).isEqualTo("order");
+            assertThat(descriptor.getAnswers()).containsExactly("buy", "book");
+            assertThat(descriptor.getDynamicParams().isEmpty()).isTrue();
+        }
+
+        @Test
+        void textThatLooksLikeASkipControlIsJustAnAnswer() {
+            var descriptor = MessageDescriptor.parseTyped("x#scipAnswer:abc");
+            assertThat(descriptor.getAnswers()).containsExactly("x#scipAnswer:abc");
+            assertThat(descriptor.getDynamicParams().canScipAnswer(0)).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("callback robustness")
+    class CallbackRobustness {
+
+        @Test
+        void repeatedDynamicParamKeepsTheLastValue() {
+            assertThat(MessageDescriptor.parse("#k:1&k:2").getDynamicParams().getParams())
+                .containsExactly(java.util.Map.entry("k", "2"));
+        }
+
+        @Test
+        void valueMayContainAnEscapedSeparator() {
+            assertThat(MessageDescriptor.parse("#time:10%3A30").getDynamicParams().getParam("time")).isEqualTo("10:30");
+        }
+
+        @Test
+        void unknownPercentSequenceIsLeftAsIs() {
+            assertThat(MessageDescriptor.parse("50%zz").getAnswers()).containsExactly("50%zz");
+        }
+    }
+
+    @Nested
     @DisplayName("guard cases")
     class Guards {
 

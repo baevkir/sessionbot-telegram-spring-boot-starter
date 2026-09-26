@@ -72,6 +72,33 @@ class UpdateWrapperTest {
     }
 
     @Nested
+    @DisplayName("typed text vs callback data")
+    class TypedVersusCallback {
+
+        @Test
+        void typedTextIsOneAnswerWithoutControlParams() {
+            var wrapper = UpdateWrapper.wrap(Fixtures.messageUpdate(1, 1L, 1, "Tom & Jerry#approved"));
+            assertThat(wrapper.getAnswers()).containsExactly("Tom & Jerry#approved");
+            assertThat(wrapper.getDynamicParams().commandApproved()).isFalse();
+        }
+
+        @Test
+        void typedCommandCannotSetControlParams() {
+            var wrapper = UpdateWrapper.wrap(Fixtures.messageUpdate(1, 1L, 1, "/order?buy#approved"));
+            assertThat(wrapper.getCommand()).isEqualTo("order");
+            assertThat(wrapper.getAnswers()).containsExactly("buy");
+            assertThat(wrapper.getDynamicParams().commandApproved()).isFalse();
+        }
+
+        @Test
+        void callbackDataCarriesAnswersAndControlParams() {
+            var wrapper = UpdateWrapper.wrap(Fixtures.callbackUpdate(2, 1L, 1, "buy&book#approved"));
+            assertThat(wrapper.getAnswers()).containsExactly("buy", "book");
+            assertThat(wrapper.getDynamicParams().commandApproved()).isTrue();
+        }
+    }
+
+    @Nested
     @DisplayName("getFrom")
     class From {
 
