@@ -108,7 +108,7 @@ public class TelegramUpdateHandler {
     private Flux<PartialBotApiMethod<?>> dispatch(ConversationState context) {
         if (!context.hasCommand()) {
             return dispatchOutsideCommand(context)
-                .orElseGet(() -> Flux.<PartialBotApiMethod<?>>from(commandsFactory.getHelpCommand().process(context))
+                .orElseGet(() -> Flux.<PartialBotApiMethod<?>>from(commandsFactory.getHelpCommand().render(context))
                     .doOnNext(messageExecutor::execute));
         }
         log.debug("Dispatching command '{}' in chat {} (state={})", context.getCommand(), context.getChatId(), context.getState());

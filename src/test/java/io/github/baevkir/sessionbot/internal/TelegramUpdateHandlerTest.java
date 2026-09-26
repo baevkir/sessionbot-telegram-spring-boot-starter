@@ -506,4 +506,21 @@ class TelegramUpdateHandlerTest {
             .verify(Duration.ofSeconds(5));
         assertThat(received).containsExactly("first", "second", "third");
     }
+
+    @DisplayName("unhandled bare update fallback to help does not close the conversation")
+    @Test
+    void unhandledBareUpdateFallsBackToHelpWithoutClosing() {
+        var handler = handler(ALLOW, List.of(), List.of());
+        var updates = Flux.concat(
+            Flux.just(
+                Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "hello")),
+                Fixtures.wrap(Fixtures.messageUpdate(2, Fixtures.CHAT_ID, 101, "again"))),
+            Flux.<UpdateWrapper>never());
+
+        StepVerifier.create(handler.handleUpdates(updates))
+            .expectNextCount(2)
+            .expectNoEvent(Duration.ofMillis(200))
+            .thenCancel()
+            .verify(Duration.ofSeconds(5));
+    }
 }
