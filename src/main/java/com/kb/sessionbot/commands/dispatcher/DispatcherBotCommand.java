@@ -1,11 +1,14 @@
 package com.kb.sessionbot.commands.dispatcher;
 
 import com.kb.sessionbot.commands.IBotCommand;
+import com.kb.sessionbot.guard.CommandGuard;
+import com.kb.sessionbot.guard.GuardResolver;
 import com.kb.sessionbot.i18n.BotLabels;
 import com.kb.sessionbot.model.CommandContext;
 import com.kb.sessionbot.model.ContextState;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.util.Assert;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.PartialBotApiMethod;
@@ -14,6 +17,8 @@ import org.telegram.telegrambots.meta.api.objects.message.MaybeInaccessibleMessa
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 
 /**
@@ -26,10 +31,14 @@ public class DispatcherBotCommand implements IBotCommand {
 
     private final CommandsDispatcher commandsDispatcher;
     private final ApplicationContext applicationContext;
+    private final List<CommandGuard> guards;
 
     public DispatcherBotCommand(Object handler, ApplicationContext applicationContext) {
         this.commandsDispatcher = new CommandsDispatcher(handler, applicationContext);
         this.applicationContext = applicationContext;
+        this.guards = GuardResolver.guardTypes(handler.getClass()).stream()
+            .map(this::resolveGuard)
+            .toList();
     }
 
     public Publisher<? extends PartialBotApiMethod<?>> process(CommandContext commandContext) {
@@ -90,5 +99,19 @@ public class DispatcherBotCommand implements IBotCommand {
     @Override
     public boolean hidden() {
         return commandsDispatcher.isHidden();
+    }
+
+    @Override
+    public List<CommandGuard> guards() {
+        return guards;
+    }
+
+    private CommandGuard resolveGuard(Class<? extends CommandGuard> type) {
+        try {
+            return applicationContext.getBean(type);
+        } catch (NoSuchBeanDefinitionException ex) {
+            throw new IllegalStateException("Command '" + commandsDispatcher.getCommandId() + "' is @Guarded by "
+                + type.getName() + ", but no bean of that type exists", ex);
+        }
     }
 }

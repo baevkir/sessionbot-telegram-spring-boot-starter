@@ -43,6 +43,16 @@ public class UpdateWrapper {
         throw new RuntimeException("Cannot get chat id from update");
     }
 
+    public String getChatType() {
+        if (update.hasMessage()) {
+            return update.getMessage().getChat().getType();
+        }
+        if (update.hasCallbackQuery() && update.getCallbackQuery().getMessage() != null) {
+            return update.getCallbackQuery().getMessage().getChat().getType();
+        }
+        return null;
+    }
+
     public Optional<Integer> getMessageId() {
         if (!update.hasMessage()) {
             return Optional.empty();

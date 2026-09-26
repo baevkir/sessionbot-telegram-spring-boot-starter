@@ -1,8 +1,11 @@
 package com.kb.sessionbot.commands;
 
+import com.kb.sessionbot.guard.CommandGuard;
 import com.kb.sessionbot.model.CommandContext;
 import org.reactivestreams.Publisher;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.PartialBotApiMethod;
+
+import java.util.List;
 
 
 public interface IBotCommand {
@@ -27,6 +30,14 @@ public interface IBotCommand {
      */
     default boolean hidden() {
         return false;
+    }
+
+    /**
+     * @return the guards that must all permit a caller before this command is shown to or run for them;
+     *         empty for an unrestricted command
+     */
+    default List<CommandGuard> guards() {
+        return List.of();
     }
 
     /**
