@@ -153,13 +153,11 @@ public class SessionBotAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
     public HelpCommand helpCommand(List<RegisteredCommand> botCommands, BotLabels botLabels) {
         return new HelpCommand(botCommands, botLabels);
     }
 
     @Bean
-    @ConditionalOnMissingBean
     public CommandsFactory commandsFactory(HelpCommand helpCommand) {
         return new CommandsFactory(helpCommand, helpCommand.getBotCommands());
     }

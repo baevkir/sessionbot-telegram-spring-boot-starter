@@ -8,14 +8,14 @@ import org.telegram.telegrambots.meta.api.methods.botapimethods.PartialBotApiMet
 /** The default {@link GuardDeniedHandler}: the same {@code /help} an unknown command gets. */
 public class HelpGuardDeniedHandler implements GuardDeniedHandler {
 
-    private final RegisteredCommand helpCommand;
+    private final HelpCommand helpCommand;
 
-    public HelpGuardDeniedHandler(RegisteredCommand helpCommand) {
+    public HelpGuardDeniedHandler(HelpCommand helpCommand) {
         this.helpCommand = helpCommand;
     }
 
     @Override
     public Publisher<? extends PartialBotApiMethod<?>> onDenied(CommandContext context) {
-        return helpCommand.process(context);
+        return helpCommand.render(context);
     }
 }

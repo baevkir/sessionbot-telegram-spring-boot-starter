@@ -32,7 +32,7 @@ public class CommandsFactory {
         });
     }
 
-    public final RegisteredCommand getHelpCommand() {
+    public final HelpCommand getHelpCommand() {
         return helpCommand;
     }
 

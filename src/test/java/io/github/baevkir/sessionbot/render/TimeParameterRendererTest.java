@@ -1,5 +1,6 @@
 package io.github.baevkir.sessionbot.render;
 
+import io.github.baevkir.sessionbot.internal.ConversationState;
 import io.github.baevkir.sessionbot.fixtures.Fixtures;
 import io.github.baevkir.sessionbot.CommandContext;
 import org.junit.jupiter.api.Test;
@@ -19,11 +20,11 @@ class TimeParameterRendererTest {
 
     private final TimeParameterRenderer renderer = new TimeParameterRenderer(Fixtures.labels(Locale.forLanguageTag("uk")));
 
-    private static CommandContext commandContext() {
+    private static ConversationState commandContext() {
         return Fixtures.contextFor("/order");
     }
 
-    private static CommandContext tapped(String callbackData) {
+    private static ConversationState tapped(String callbackData) {
         return commandContext().addUpdate(Fixtures.answerWrapper(2, 555, callbackData));
     }
 

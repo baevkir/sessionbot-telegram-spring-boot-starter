@@ -1,7 +1,6 @@
 package io.github.baevkir.sessionbot.internal;
 
 import io.github.baevkir.sessionbot.guard.CommandGuard;
-import io.github.baevkir.sessionbot.CommandContext;
 import org.reactivestreams.Publisher;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.PartialBotApiMethod;
 
@@ -41,9 +40,10 @@ public interface RegisteredCommand {
     }
 
     /**
-     * Process the message
-     * @return
-     * @param commandContext
+     * Runs one dispatch step of this command, advancing the conversation.
+     *
+     * @param conversation the chat's conversation state
+     * @return the messages to send
      */
-    Publisher<? extends PartialBotApiMethod<?>> process(CommandContext commandContext);
+    Publisher<? extends PartialBotApiMethod<?>> process(ConversationState conversation);
 }

@@ -98,8 +98,8 @@ class TelegramUpdateHandlerGuardTest {
     @Test
     void theLegacyConstructorAnswersADenialWithHelp() {
         RegisteredCommand admin = guardedCommand(DENY);
-        RegisteredCommand help = mock(RegisteredCommand.class);
-        doReturn(Mono.just(send("help"))).when(help).process(any());
+        HelpCommand help = mock(HelpCommand.class);
+        doReturn(Mono.just(send("help"))).when(help).render(any());
         CommandsFactory commandsFactory = mock(CommandsFactory.class);
         when(commandsFactory.getCommand(any())).thenReturn(admin);
         when(commandsFactory.getHelpCommand()).thenReturn(help);

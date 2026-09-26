@@ -4,7 +4,6 @@ import io.github.baevkir.sessionbot.fixtures.EchoCommand;
 import io.github.baevkir.sessionbot.fixtures.Fixtures;
 import io.github.baevkir.sessionbot.fixtures.FixtureCommandConfig;
 import io.github.baevkir.sessionbot.fixtures.OrderCommand;
-import io.github.baevkir.sessionbot.CommandContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,8 +33,8 @@ class CommandsDispatcherTest {
         context.close();
     }
 
-    private static CommandContext ctx(String wire) {
-        return CommandContext.create(Fixtures.commandWrapper(wire));
+    private static ConversationState ctx(String wire) {
+        return ConversationState.forCommand(Fixtures.commandWrapper(wire));
     }
 
     @Nested
@@ -89,8 +88,7 @@ class CommandsDispatcherTest {
         @Test
         void optionalSkippedWhenSkipAnswerSet() {
             // required supplied; optional missing but skipAnswer allows skipping index 2.
-            var context = io.github.baevkir.sessionbot.CommandContext
-                .create(Fixtures.commandWrapper("/order?note&hello"))
+            var context = ConversationState.forCommand(Fixtures.commandWrapper("/order?note&hello"))
                 .addUpdate(Fixtures.answerWrapper(2, 100, "#skip:2"));
             var result = orderDispatcher.invoke(context);
             assertThat(result.hasErrors()).isFalse();
@@ -162,7 +160,7 @@ class CommandsDispatcherTest {
 
         @Test
         void dynamicParameters() {
-            var result = echoDispatcher.invoke(CommandContext.create(Fixtures.buttonCommandWrapper("/echo?dyn#approved")));
+            var result = echoDispatcher.invoke(ConversationState.forCommand(Fixtures.buttonCommandWrapper("/echo?dyn#approved")));
             StepVerifier.create(result.getInvocation())
                 .assertNext(m -> assertThat(((SendMessage) m).getText()).isEqualTo("dyn:true"))
                 .verifyComplete();

@@ -2,7 +2,6 @@ package io.github.baevkir.sessionbot.internal;
 
 import io.github.baevkir.sessionbot.fixtures.Fixtures;
 import io.github.baevkir.sessionbot.guard.CommandGuard;
-import io.github.baevkir.sessionbot.CommandContext;
 import org.junit.jupiter.api.Test;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import reactor.core.publisher.Flux;
@@ -55,8 +54,7 @@ class HelpCommandTest {
             return Mono.just(true);
         };
         var help = new HelpCommand(List.of(command("admin", capturing)), Fixtures.labels(Locale.ENGLISH));
-        var plainText = CommandContext.empty()
-            .addUpdate(Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "hello")));
+        var plainText = ConversationState.forBareUpdate(Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "hello")));
 
         StepVerifier.create(Flux.from(help.process(plainText))).expectNextCount(1).verifyComplete();
         assertThat(seen).hasValue("tester");

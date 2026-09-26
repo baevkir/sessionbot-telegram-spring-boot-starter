@@ -1,117 +1,45 @@
 package io.github.baevkir.sessionbot;
 
-import io.github.baevkir.sessionbot.internal.ContextState;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
-import org.springframework.util.Assert;
-import org.telegram.telegrambots.meta.api.objects.message.Message;
+import io.github.baevkir.sessionbot.internal.ConversationState;
+import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.User;
+import org.telegram.telegrambots.meta.api.objects.message.MaybeInaccessibleMessage;
 
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 
 /**
- * Per-chat session state for a multi-step command: the originating command update, the
- * accumulated answers, the question messages sent back to the user, and the
- * open &rarr; progress &rarr; close lifecycle.
+ * Read-only view of one chat's conversation with the bot: the update that opened it — a command, or a
+ * bare text, document or contact outside any command — the answers collected so far and the latest
+ * update. Commands, guards, handlers and renderers receive it; only the library advances it.
  */
-@ToString
-@Getter
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class CommandContext {
+public interface CommandContext {
 
-    private UpdateWrapper commandUpdate;
-    private final Deque<UpdateWrapper> updates = new LinkedList<>();
-    private final List<String> answers = Collections.synchronizedList(new ArrayList<>());
-    private final List<Message> questionMessages = Collections.synchronizedList(new ArrayList<>());
-    private ContextState state;
-
-    public static CommandContext create(UpdateWrapper commandUpdate) {
-        Assert.isTrue(commandUpdate.isCommand(), "Context should be created only for command.");
-        CommandContext context = new CommandContext();
-        context.commandUpdate = commandUpdate;
-        context.answers.addAll(commandUpdate.getAnswers());
-        context.state = ContextState.open;
-        return context;
+    /** A context for a single update: a command opens a command context, anything else a bare one. For tests and out-of-band use. */
+    static CommandContext of(Update update) {
+        var wrapper = UpdateWrapper.wrap(update);
+        return wrapper.isCommand() ? ConversationState.forCommand(wrapper) : ConversationState.forBareUpdate(wrapper);
     }
 
-    /** Context for a non-command update dispatched outside the command flow (e.g. a bare document). */
-    public static CommandContext forUpdate(UpdateWrapper update) {
-        CommandContext context = new CommandContext();
-        context.commandUpdate = update;
-        context.state = ContextState.open;
-        return context;
-    }
+    String getChatId();
 
-    public static CommandContext empty() {
-        return new CommandContext();
-    }
+    /** The sender of the opening update, as the {@link AuthInterceptor} left it; {@code null} when it has none. */
+    User getUser();
 
-    public String getCommand() {
-        return commandUpdate.getCommand();
-    }
+    /** The command name, or {@code null} for a bare update. */
+    String getCommand();
 
-    public CommandContext startProgress() {
-        state = ContextState.progress;
-        return this;
-    }
+    /** The answers collected so far, including those the latest update carries; unmodifiable. */
+    List<String> getAnswers();
 
-    public CommandContext close() {
-        state = ContextState.close;
-        return this;
-    }
+    /** The update that opened the context: the command, or the bare update itself. */
+    UpdateWrapper getCommandUpdate();
 
-    public CommandContext addAnswer(String answer) {
-        answers.add(answer);
-        return this;
-    }
+    /** The latest update of the conversation. */
+    Optional<UpdateWrapper> getCurrentUpdate();
 
-    public CommandContext addUpdate(UpdateWrapper update) {
-        Assert.isTrue(!update.isCommand(), "Command should create new context");
-        updates.add(update);
-        return this;
-    }
+    /** The message whose inline button was tapped: the latest update's, else the opening update's. */
+    Optional<MaybeInaccessibleMessage> getCallbackMessage();
 
-    public CommandContext addQuestionMessage(Message message) {
-        Objects.requireNonNull(message, "Message is null");
-        questionMessages.add(message);
-        return this;
-    }
-
-    public boolean isEmpty() {
-        return commandUpdate == null;
-    }
-
-    public List<String> getPendingArguments() {
-        return getCurrentUpdate()
-            .map(UpdateWrapper::getAnswers)
-            .orElse(Collections.emptyList());
-    }
-
-    public String getChatId() {
-        return Optional.ofNullable(commandUpdate)
-            .or(this::getCurrentUpdate)
-            .map(UpdateWrapper::getChatId)
-            .orElse(null);
-    }
-
-    public Optional<UpdateWrapper> getInitialUpdate() {
-        return Optional.ofNullable(updates.peekFirst());
-    }
-
-    public Optional<UpdateWrapper> getCurrentUpdate() {
-        return Optional.ofNullable(updates.peekLast());
-    }
-
-    public List<String> getAnswers() {
-        var result = new ArrayList<String>();
-        result.addAll(answers);
-        result.addAll(getPendingArguments());
-        return Collections.unmodifiableList(result);
-    }
-
-    public DynamicParameters getDynamicParams() {
-        return getCurrentUpdate().orElse(commandUpdate).getDynamicParams();
-    }
-
+    DynamicParameters getDynamicParams();
 }

@@ -55,7 +55,7 @@ public class TelegramUpdateHandler {
         List<String> permitCommands
     ) {
         this(commandsFactory, authInterceptor, messageExecutor, documentHandlers, contactHandlers, textHandlers,
-            permitCommands, context -> commandsFactory.getHelpCommand().process(context));
+            permitCommands, new HelpGuardDeniedHandler(commandsFactory.getHelpCommand()));
     }
 
     public TelegramUpdateHandler(
@@ -81,7 +81,7 @@ public class TelegramUpdateHandler {
     public Flux<PartialBotApiMethod<?>> handleUpdates(Flux<UpdateWrapper> updates) {
         Assert.notNull(updates, "Updates is null.");
         return updates
-            .scanWith(CommandContext::empty, this::fold)
+            .scanWith(ConversationState::empty, this::fold)
             .skip(1) // drop the empty seed context emitted before any update
             .concatMap(context ->
                 dispatch(context)
@@ -91,20 +91,23 @@ public class TelegramUpdateHandler {
             .concatMapIterable(DispatchOutcome::results);
     }
 
-    private CommandContext fold(CommandContext context, UpdateWrapper update) {
+    private ConversationState fold(ConversationState context, UpdateWrapper update) {
         if (update.isCommand()) {
-            return CommandContext.create(update);
+            return ConversationState.forCommand(update);
         }
-        if (update.getDynamicParams().needRefreshContext() && !context.isEmpty()) {
-            return CommandContext.create(context.getCommandUpdate()).addUpdate(update);
+        if (!context.hasCommand()) {
+            // Each update outside a command gets its own context, so they never pile up in one.
+            return ConversationState.forBareUpdate(update);
+        }
+        if (update.getDynamicParams().needRefreshContext()) {
+            return ConversationState.forCommand(context.getCommandUpdate()).addUpdate(update);
         }
         return context.addUpdate(update);
     }
 
-    private Flux<PartialBotApiMethod<?>> dispatch(CommandContext context) {
-        if (context.isEmpty()) {
-            return context.getCurrentUpdate()
-                .flatMap(this::dispatchOutsideCommand)
+    private Flux<PartialBotApiMethod<?>> dispatch(ConversationState context) {
+        if (!context.hasCommand()) {
+            return dispatchOutsideCommand(context)
                 .orElseGet(() -> Flux.<PartialBotApiMethod<?>>from(commandsFactory.getHelpCommand().process(context))
                     .doOnNext(messageExecutor::execute));
         }
@@ -115,10 +118,8 @@ public class TelegramUpdateHandler {
         return authorized
             .<PartialBotApiMethod<?>>flatMapMany(allowed -> {
                 if (!allowed) {
-                    var from = context.getCommandUpdate().getFrom();
-                    var username = from != null ? from.getUserName() : "unknown";
-                    log.debug("Auth rejected for command '{}' in chat {} (user={})", context.getCommand(), context.getChatId(), username);
-                    return Flux.error(new BotAuthException(context, "User " + username + " is unauthorized to use bot."));
+                    log.debug("Auth rejected for command '{}' in chat {} (user={})", context.getCommand(), context.getChatId(), userName(context));
+                    return Flux.error(new BotAuthException(context, "User " + userName(context) + " is unauthorized to use bot."));
                 }
                 var command = commandsFactory.getCommand(context.getCommand());
                 return CommandGuards.permits(command, GuardContext.of(context, command.getCommandIdentifier()))
@@ -139,12 +140,13 @@ public class TelegramUpdateHandler {
             });
     }
 
-    private Optional<Flux<PartialBotApiMethod<?>>> dispatchOutsideCommand(UpdateWrapper update) {
+    private Optional<Flux<PartialBotApiMethod<?>>> dispatchOutsideCommand(ConversationState context) {
+        var update = context.getCommandUpdate();
         var contactDispatch = update.getContact()
             .flatMap(contact -> contactHandlers.stream()
                 .filter(handler -> handler.supports(contact))
                 .findFirst()
-                .map(handler -> dispatchBare(update, "contact " + contact.getUserId(),
+                .map(handler -> dispatchBare(context, "contact " + contact.getUserId(),
                     bareContext -> handler.handle(bareContext, contact))));
         if (contactDispatch.isPresent()) {
             return contactDispatch;
@@ -153,7 +155,7 @@ public class TelegramUpdateHandler {
             .flatMap(document -> documentHandlers.stream()
                 .filter(handler -> handler.supports(document))
                 .findFirst()
-                .map(handler -> dispatchBare(update, "document '" + document.getFileName() + "'",
+                .map(handler -> dispatchBare(context, "document '" + document.getFileName() + "'",
                     bareContext -> handler.handle(bareContext, document))));
         if (documentDispatch.isPresent()) {
             return documentDispatch;
@@ -161,26 +163,27 @@ public class TelegramUpdateHandler {
         return messageText(update)
             .flatMap(text -> textHandlers.stream()
                 .findFirst()
-                .map(handler -> dispatchBare(update, "text", bareContext -> handler.handle(bareContext, text))));
+                .map(handler -> dispatchBare(context, "text", bareContext -> handler.handle(bareContext, text))));
     }
 
-    private Flux<PartialBotApiMethod<?>> dispatchBare(UpdateWrapper update, String description,
+    private Flux<PartialBotApiMethod<?>> dispatchBare(ConversationState context, String description,
                                                      Function<CommandContext, Publisher<PartialBotApiMethod<?>>> handling) {
-        var bareContext = CommandContext.forUpdate(update);
-        log.debug("Dispatching {} in chat {}", description, bareContext.getChatId());
-        return authInterceptor.intercept(bareContext)
+        log.debug("Dispatching {} in chat {}", description, context.getChatId());
+        return authInterceptor.intercept(context)
             .<PartialBotApiMethod<?>>flatMapMany(authorized -> {
                 if (!authorized) {
-                    var from = update.getFrom();
-                    var username = from != null ? from.getUserName() : "unknown";
-                    return Flux.error(new BotAuthException(bareContext, "User " + username + " is unauthorized to use bot."));
+                    return Flux.error(new BotAuthException(context, "User " + userName(context) + " is unauthorized to use bot."));
                 }
-                return handling.apply(bareContext);
+                return handling.apply(context);
             })
             .onErrorMap(error -> error instanceof BotCommandException || error instanceof BotAuthException
                 ? error
-                : new BotCommandException(bareContext, error))
+                : new BotCommandException(context, error))
             .doOnNext(messageExecutor::execute);
+    }
+
+    private static String userName(CommandContext context) {
+        return context.getUser() != null ? context.getUser().getUserName() : "unknown";
     }
 
     /** The message text exactly as typed; a callback's data is not "text" and never reaches a handler. */
@@ -195,6 +198,6 @@ public class TelegramUpdateHandler {
      * pipeline complete after the outcome whose command reached {@link ContextState#close}, while
      * still emitting all of that context's results (including cleanup messages) first.
      */
-    private record DispatchOutcome(CommandContext context, List<PartialBotApiMethod<?>> results) {
+    private record DispatchOutcome(ConversationState context, List<PartialBotApiMethod<?>> results) {
     }
 }

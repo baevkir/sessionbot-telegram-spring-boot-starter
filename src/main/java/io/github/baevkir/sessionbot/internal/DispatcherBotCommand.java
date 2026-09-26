@@ -2,7 +2,6 @@ package io.github.baevkir.sessionbot.internal;
 
 import io.github.baevkir.sessionbot.guard.CommandGuard;
 import io.github.baevkir.sessionbot.i18n.BotLabels;
-import io.github.baevkir.sessionbot.CommandContext;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.springframework.aop.support.AopUtils;
@@ -40,7 +39,7 @@ public class DispatcherBotCommand implements RegisteredCommand {
             .toList();
     }
 
-    public Publisher<? extends PartialBotApiMethod<?>> process(CommandContext commandContext) {
+    public Publisher<? extends PartialBotApiMethod<?>> process(ConversationState commandContext) {
         Assert.isTrue(!ContextState.close.equals(commandContext.getState()), "Cannot process closed context");
         log.debug("Processing command '{}' (state={})", commandsDispatcher.getCommandId(), commandContext.getState());
         var invocationResult = commandsDispatcher.invoke(commandContext);

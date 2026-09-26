@@ -1,8 +1,8 @@
 package io.github.baevkir.sessionbot.fixtures;
 
+import io.github.baevkir.sessionbot.internal.ConversationState;
 import io.github.baevkir.sessionbot.i18n.BotLabels;
 import io.github.baevkir.sessionbot.i18n.ConfiguredLocaleProvider;
-import io.github.baevkir.sessionbot.CommandContext;
 import io.github.baevkir.sessionbot.UpdateWrapper;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
@@ -115,8 +115,8 @@ public final class Fixtures {
         return wrap(callbackUpdate(updateId, CHAT_ID, questionMessageId, wire));
     }
 
-    public static CommandContext contextFor(String commandWire) {
-        return CommandContext.create(commandWrapper(commandWire));
+    public static ConversationState contextFor(String commandWire) {
+        return ConversationState.forCommand(commandWrapper(commandWire));
     }
 
     /** Real library bundles resolved in {@code locale}, the way a bot configured with that language sees them. */

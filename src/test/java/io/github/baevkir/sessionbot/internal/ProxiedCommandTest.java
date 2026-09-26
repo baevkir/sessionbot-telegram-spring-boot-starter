@@ -8,7 +8,6 @@ import io.github.baevkir.sessionbot.fixtures.OrderCommand;
 import io.github.baevkir.sessionbot.guard.CommandGuard;
 import io.github.baevkir.sessionbot.guard.GuardContext;
 import io.github.baevkir.sessionbot.guard.Guarded;
-import io.github.baevkir.sessionbot.CommandContext;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +53,7 @@ class ProxiedCommandTest {
         assertThat(AopUtils.isCglibProxy(proxy)).isTrue();
 
         var dispatcher = new CommandsDispatcher(proxy, context);
-        var result = dispatcher.invoke(CommandContext.create(Fixtures.commandWrapper("/order?buy&book")));
+        var result = dispatcher.invoke(ConversationState.forCommand(Fixtures.commandWrapper("/order?buy&book")));
 
         assertThat(dispatcher.getCommandId()).isEqualTo("order");
         assertThat(result.hasErrors()).isFalse();
@@ -74,7 +73,7 @@ class ProxiedCommandTest {
         assertThat(AopUtils.isJdkDynamicProxy(proxy)).isTrue();
 
         var dispatcher = new CommandsDispatcher(proxy, context);
-        var result = dispatcher.invoke(CommandContext.create(Fixtures.commandWrapper("/greet")));
+        var result = dispatcher.invoke(ConversationState.forCommand(Fixtures.commandWrapper("/greet")));
 
         assertThat(dispatcher.getCommandId()).isEqualTo("greet");
         assertThat(result.hasErrors()).isFalse();

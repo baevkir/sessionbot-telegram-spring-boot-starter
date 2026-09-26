@@ -3,7 +3,6 @@ package io.github.baevkir.sessionbot.internal;
 import io.github.baevkir.sessionbot.fixtures.EchoCommand;
 import io.github.baevkir.sessionbot.fixtures.Fixtures;
 import io.github.baevkir.sessionbot.fixtures.OrderCommand;
-import io.github.baevkir.sessionbot.CommandContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -16,8 +15,8 @@ class MethodMatcherTest {
     private final MethodMatcher orderMatcher = MethodMatcher.create(new OrderCommand());
     private final MethodMatcher echoMatcher = MethodMatcher.create(new EchoCommand());
 
-    private static CommandContext contextWith(String wire) {
-        return CommandContext.create(Fixtures.commandWrapper(wire));
+    private static ConversationState contextWith(String wire) {
+        return ConversationState.forCommand(Fixtures.commandWrapper(wire));
     }
 
     @Nested

@@ -43,7 +43,12 @@ public class HelpCommand implements RegisteredCommand {
     }
 
     @Override
-    public Publisher<? extends PartialBotApiMethod<?>> process(CommandContext commandContext) {
+    public Publisher<? extends PartialBotApiMethod<?>> process(ConversationState conversation) {
+        return render(conversation);
+    }
+
+    /** The help message for {@code commandContext}'s caller, listing only commands their guards permit. */
+    public Publisher<? extends PartialBotApiMethod<?>> render(CommandContext commandContext) {
         var userName = userName(commandContext);
         return Flux.fromIterable(botCommands)
             .filter(Predicate.not(RegisteredCommand::hidden))
