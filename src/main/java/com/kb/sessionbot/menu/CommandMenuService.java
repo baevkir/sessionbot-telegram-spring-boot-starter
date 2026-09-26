@@ -19,7 +19,9 @@ import java.util.function.Predicate;
  * Per-chat command menus for bots with {@code @Guarded} commands. The library never calls this itself:
  * the application decides when a chat's menu should change (at startup, after a role change, ...).
  * Telegram clients cache menus, so a change may show with a delay; access never depends on the menu,
- * because guards are checked on every call.
+ * because guards are checked on every call. {@link #refresh} evaluates guards with {@code chatType}
+ * {@code "private"}, since per-chat menus are meant for private chats; group-chat scopes are out of
+ * scope for now.
  */
 public class CommandMenuService {
 
