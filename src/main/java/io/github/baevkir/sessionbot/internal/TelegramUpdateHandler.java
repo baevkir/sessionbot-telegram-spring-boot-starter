@@ -162,19 +162,20 @@ public class TelegramUpdateHandler {
         }
         return messageText(update)
             .flatMap(text -> textHandlers.stream()
+                .filter(handler -> handler.supports(text))
                 .findFirst()
                 .map(handler -> dispatchBare(context, "text", bareContext -> handler.handle(bareContext, text))));
     }
 
     private Flux<PartialBotApiMethod<?>> dispatchBare(ConversationState context, String description,
-                                                     Function<CommandContext, Publisher<PartialBotApiMethod<?>>> handling) {
+                                                     Function<CommandContext, Publisher<? extends PartialBotApiMethod<?>>> handling) {
         log.debug("Dispatching {} in chat {}", description, context.getChatId());
         return authInterceptor.intercept(context)
             .<PartialBotApiMethod<?>>flatMapMany(authorized -> {
                 if (!authorized) {
                     return Flux.error(new BotAuthException(context, "User " + userName(context) + " is unauthorized to use bot."));
                 }
-                return handling.apply(context);
+                return Flux.<PartialBotApiMethod<?>>from(handling.apply(context));
             })
             .onErrorMap(error -> error instanceof BotCommandException || error instanceof BotAuthException
                 ? error

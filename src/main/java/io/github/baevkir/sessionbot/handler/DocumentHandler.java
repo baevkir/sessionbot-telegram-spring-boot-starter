@@ -14,5 +14,5 @@ public interface DocumentHandler {
 
     boolean supports(Document document);
 
-    Publisher<PartialBotApiMethod<?>> handle(CommandContext context, Document document);
+    Publisher<? extends PartialBotApiMethod<?>> handle(CommandContext context, Document document);
 }

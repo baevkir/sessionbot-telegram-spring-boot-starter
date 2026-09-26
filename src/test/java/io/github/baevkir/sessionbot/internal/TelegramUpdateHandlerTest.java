@@ -424,6 +424,28 @@ class TelegramUpdateHandlerTest {
         assertThat(received.get()).isEqualTo("Пилосос & підлога #кухня");
     }
 
+    @DisplayName("the first text handler that supports the text wins")
+    @Test
+    void firstSupportingTextHandlerWins() {
+        var declining = new TextHandler() {
+            @Override
+            public boolean supports(String text) {
+                return !text.startsWith("buy");
+            }
+
+            @Override
+            public Publisher<PartialBotApiMethod<?>> handle(CommandContext context, String text) {
+                return Flux.just(SendMessage.builder().chatId(context.getChatId()).text("declining").build());
+            }
+        };
+        TextHandler shopping = (context, text) -> Flux.just(SendMessage.builder().chatId(context.getChatId()).text("shopping").build());
+        var handler = handler(ALLOW, List.of(), List.of(declining, shopping));
+
+        StepVerifier.create(handler.handleUpdates(Flux.just(Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "buy milk")))))
+            .assertNext(sent -> assertThat(((SendMessage) sent).getText()).isEqualTo("shopping"))
+            .verifyComplete();
+    }
+
     @DisplayName("a command still wins over a registered text handler")
     @Test
     void commandWinsOverTextHandler() {

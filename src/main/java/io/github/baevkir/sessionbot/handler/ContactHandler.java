@@ -14,5 +14,5 @@ public interface ContactHandler {
 
     boolean supports(Contact contact);
 
-    Publisher<PartialBotApiMethod<?>> handle(CommandContext context, Contact contact);
+    Publisher<? extends PartialBotApiMethod<?>> handle(CommandContext context, Contact contact);
 }
