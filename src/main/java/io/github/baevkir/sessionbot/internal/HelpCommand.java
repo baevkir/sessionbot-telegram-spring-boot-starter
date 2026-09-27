@@ -1,4 +1,3 @@
-
 package io.github.baevkir.sessionbot.internal;
 
 import io.github.baevkir.sessionbot.guard.GuardContext;

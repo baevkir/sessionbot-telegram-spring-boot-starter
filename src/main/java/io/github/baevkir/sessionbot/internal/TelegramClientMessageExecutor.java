@@ -78,8 +78,8 @@ public class TelegramClientMessageExecutor implements MessageExecutor {
                     yield null;
                 }
             };
-        } catch (TelegramApiException e) {
-            log.error("Cannot execute message in chat (type={})", message.getClass().getSimpleName(), e);
+        } catch (TelegramApiException ex) {
+            log.error("Cannot execute message in chat (type={})", message.getClass().getSimpleName(), ex);
             return null;
         }
     }

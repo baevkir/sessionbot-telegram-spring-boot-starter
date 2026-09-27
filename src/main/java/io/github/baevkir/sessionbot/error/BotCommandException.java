@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 public class BotCommandException extends RuntimeException {
-    private CommandContext context;
+    private final CommandContext context;
 
     public BotCommandException(CommandContext context, Throwable cause) {
         super(cause);
