@@ -34,10 +34,11 @@ First public release.
 - **Typed text is no longer split on `&`/`#`.** A typed command's `?`-answers keep today's grammar,
   but `#` inside them is now literal text, not a control-parameter separator — a behavior change, not
   only a fix (see Fixed below).
-- **Old wire data stops decoding.** Inline keyboards already sent to users before the upgrade with
-  `scipAnswer`, `approved` or `initiator` callback data stop working once the bot is upgraded — the
-  skip-answer wire key is now `skip` (was `scip`), and `approved`/`initiator` are no longer read
-  through dedicated accessors (see Removed below); read them back with `hasParam`/`getParam`.
+- **Old skip buttons stop skipping.** Inline keyboards sent before the upgrade with `scipAnswer`
+  callback data no longer skip once the bot is upgraded — the wire key is now `skip`. Keyboards
+  carrying `approved` or `initiator` still decode (those keys are unchanged); only the dedicated
+  accessors were removed (see Removed below) — read them with `hasParam("approved")` /
+  `getParam("initiator")`.
 - **`CommandContext` is read-only.** `getChatId()`, `getCommandUpdate()` and `getCurrentUpdate()`
   work as before; `getUser()` and `getCallbackMessage()` are new — replace hand-written helpers that
   derive the tapped message from `getCurrentUpdate()`/`getCommandUpdate()` with
