@@ -92,7 +92,12 @@ InlineKeyboardButton.builder()
 
 Telegram caps callback data at 64 bytes; `CommandBuilder.build()` only logs a warning when the
 result exceeds that limit, so keep command and answer strings short. The builder escapes the
-characters the format reserves (`% ? & # :`), so any answer value round-trips intact.
+characters the format reserves — `% ? & #` in answers, and additionally `:` in dynamic parameters
+(where it splits key from value) — so an answer or parameter value round-trips through those
+characters. Two exceptions: an answer-only button (no `command(...)`) whose first answer starts with
+`/` is read back as a command, not as answers, since a leading `/` is not itself escaped; and trailing
+empty answers are dropped on the way back in, since they are joined and split with the same `&`
+separator.
 
 Only button presses are read as wire format. Text the user types while a command waits for input is
 taken as one answer, verbatim — `Tom & Jerry` stays a single value — and a typed command such as
@@ -119,6 +124,10 @@ a bean of the matching handler interface:
 
 With no handler registered, or none matching, the update falls through to the default `/help`
 behavior.
+
+**Known limitation:** if a bare-update handler (or the fallback `/help`) fails, the error reply is
+sent and the chat's update stream ends there — any further updates already queued for that chat in
+the same burst are dropped, not merely delayed. The chat resumes normally on its next incoming update.
 
 ## Authentication
 
@@ -222,6 +231,12 @@ the menu currently displays.
 In a group, Telegram delivers commands as `/order@MyBot`. The bot runs a command addressed to its
 own `bot-username` (case-insensitive) or to no one, and ignores one addressed to another bot — no
 reply, no `/help`.
+
+A conversation belongs to the chat, not to the member who is typing: in a group, any member's reply
+or button tap continues the open conversation, and the `AuthInterceptor` and command guards judge the
+member who opened it, not whoever answers. A guarded multi-step command is therefore **not safe in
+groups yet** — any group member can continue (and complete) a conversation another member started
+under the permissions of whoever opened it.
 
 ## Configuration reference
 

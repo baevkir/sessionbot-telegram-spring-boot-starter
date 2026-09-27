@@ -9,7 +9,10 @@ import java.util.Optional;
 /**
  * What a {@link CommandGuard} knows about the call it is judging. {@code user} is the sender of the
  * command update - the same object the {@code AuthInterceptor} saw and may have normalized - and is
- * {@code null} only when the update carries no sender. {@code chatType} is Telegram's
+ * {@code null} only when the update carries no sender. In a group chat a conversation belongs to the
+ * chat, not to any one member: {@code user} is always the member who opened it, even when a later
+ * reply or button tap in that same conversation comes from someone else in the group - so a guarded
+ * multi-step command is not safe to expose in a group yet. {@code chatType} is Telegram's
  * {@code private}/{@code group}/{@code supergroup}/{@code channel}, or {@code null} when unknown.
  */
 public record GuardContext(User user, String chatId, String chatType, String command) {

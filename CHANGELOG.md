@@ -23,6 +23,21 @@ First public release.
   | `SessionBotAutoConfiguration`, `SessionBotProperties` | `…sessionbot.autoconfigure` |
 
   Everything else is in `…sessionbot.internal` and carries no compatibility guarantee.
+- **Renamed:** `CommandsSessionBotConfiguration` → `SessionBotAutoConfiguration` and
+  `CommandsSessionBotProperties` → `SessionBotProperties` — matters if an app excludes
+  auto-configuration by class name (`@SpringBootApplication(exclude = ...)`,
+  `spring.autoconfigure.exclude`).
+- **Startup now fails fast** on two `@BotCommand` beans sharing an identifier, or one named `help`
+  (it clashes with the built-in `/help`).
+- **`@Parameter` is allowed on method parameters only** (`@Target(ElementType.PARAMETER)`); it was
+  never meant to apply anywhere else.
+- **Typed text is no longer split on `&`/`#`.** A typed command's `?`-answers keep today's grammar,
+  but `#` inside them is now literal text, not a control-parameter separator — a behavior change, not
+  only a fix (see Fixed below).
+- **Old wire data stops decoding.** Inline keyboards already sent to users before the upgrade with
+  `scipAnswer`, `approved` or `initiator` callback data stop working once the bot is upgraded — the
+  skip-answer wire key is now `skip` (was `scip`), and `approved`/`initiator` are no longer read
+  through dedicated accessors (see Removed below); read them back with `hasParam`/`getParam`.
 - **`CommandContext` is read-only.** `getChatId()`, `getCommandUpdate()` and `getCurrentUpdate()`
   work as before; `getUser()` and `getCallbackMessage()` are new — replace hand-written helpers that
   derive the tapped message from `getCurrentUpdate()`/`getCommandUpdate()` with
@@ -46,7 +61,8 @@ First public release.
 
 ### Added
 
-- Group chats: `/cmd@ThisBot` runs, `/cmd@OtherBot` is ignored.
+- Group chats: `/cmd@ThisBot` runs, `/cmd@OtherBot` is ignored (see README for the current
+  limitation).
 - `TextHandler.supports(text)` — several text handlers can split the work.
 - `CommandContext.getUser()`, `getCallbackMessage()`, `CommandContext.of(update)`.
 
@@ -59,3 +75,12 @@ First public release.
 - `/help` releases the chat at once; bare updates no longer accumulate in one context.
 - An update with no resolvable chat no longer terminates the inbound stream.
 - HTML in command descriptions and prompts is escaped.
+
+### Known limitations
+
+- If a bare-update handler fails, the error reply is sent and the chat's stream ends there, so
+  further updates already queued for that chat in the same burst are dropped (see README, "Bare
+  updates").
+- A guarded multi-step command is not safe in a group chat yet: the conversation belongs to the chat,
+  not the member, so any member can continue one opened by another under the opener's permissions
+  (see README, "Group chats").
