@@ -135,10 +135,11 @@ class MessageDescriptorTest {
         }
 
         @Test
-        void typedCommandKeepsAnswersButDropsDynamicParams() {
+        @DisplayName("a typed command's # is literal, part of the ?-answers text, not a params separator")
+        void typedCommandAnswersKeepEverythingAfterQuestionMarkVerbatim() {
             var descriptor = MessageDescriptor.parseTyped("/order?buy&book#approved&initiator:admin");
             assertThat(descriptor.getCommand()).isEqualTo("order");
-            assertThat(descriptor.getAnswers()).containsExactly("buy", "book");
+            assertThat(descriptor.getAnswers()).containsExactly("buy", "book#approved", "initiator:admin");
             assertThat(descriptor.getDynamicParams().isEmpty()).isTrue();
         }
 
@@ -147,6 +148,39 @@ class MessageDescriptorTest {
             var descriptor = MessageDescriptor.parseTyped("x#skip:abc");
             assertThat(descriptor.getAnswers()).containsExactly("x#skip:abc");
             assertThat(descriptor.getDynamicParams().canSkipAnswer(0)).isFalse();
+        }
+
+        @Test
+        @DisplayName("the command token ends at the first whitespace; addressee and ?-answers still parse")
+        void addressedCommandWithTrailingFreeTextAppendsOneVerbatimAnswer() {
+            var descriptor = MessageDescriptor.parseTyped("/order@MyBot buy");
+            assertThat(descriptor.getCommand()).isEqualTo("order");
+            assertThat(descriptor.getAddressee()).isEqualTo("MyBot");
+            assertThat(descriptor.getAnswers()).containsExactly("buy");
+        }
+
+        @Test
+        @DisplayName("free text after a bare command name becomes one verbatim answer")
+        void bareCommandWithTrailingFreeTextAppendsOneVerbatimAnswer() {
+            var descriptor = MessageDescriptor.parseTyped("/start abc123");
+            assertThat(descriptor.getCommand()).isEqualTo("start");
+            assertThat(descriptor.getAnswers()).containsExactly("abc123");
+        }
+
+        @Test
+        @DisplayName("free text with several words after a command stays a single verbatim answer")
+        void trailingFreeTextWithSpacesStaysOneAnswer() {
+            var descriptor = MessageDescriptor.parseTyped("/note hello world");
+            assertThat(descriptor.getCommand()).isEqualTo("note");
+            assertThat(descriptor.getAnswers()).containsExactly("hello world");
+        }
+
+        @Test
+        @DisplayName("a # inside a typed command's ?-answers is literal, not a dynamic-params separator")
+        void hashInsideTypedAnswersIsLiteral() {
+            var descriptor = MessageDescriptor.parseTyped("/order?a#b");
+            assertThat(descriptor.getAnswers()).containsExactly("a#b");
+            assertThat(descriptor.getDynamicParams().isEmpty()).isTrue();
         }
     }
 

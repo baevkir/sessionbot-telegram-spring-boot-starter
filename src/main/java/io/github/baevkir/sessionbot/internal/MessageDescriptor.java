@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -62,7 +63,7 @@ public class MessageDescriptor {
         Assert.isTrue(StringUtils.hasText(text), "text is empty");
         MessageDescriptor descriptor;
         if (text.startsWith(COMMAND_START)) {
-            descriptor = parse(text);
+            descriptor = parseTypedCommand(text);
         } else {
             descriptor = new MessageDescriptor();
             descriptor.answers = List.of(text);
@@ -81,6 +82,54 @@ public class MessageDescriptor {
 
     public boolean isCommand() {
         return command != null;
+    }
+
+    /**
+     * The command token runs up to the first whitespace and keeps today's {@code name[@addressee][?answers]}
+     * grammar (answers split on {@code &}); unlike {@link #parse}, {@code #} is never a dynamic-params
+     * separator here, only literal text a user typed. Text after the whitespace, trimmed, becomes one more
+     * verbatim answer.
+     */
+    private static MessageDescriptor parseTypedCommand(String text) {
+        var descriptor = new MessageDescriptor();
+        var whitespaceIndex = indexOfWhitespace(text);
+        var token = whitespaceIndex < 0 ? text : text.substring(0, whitespaceIndex);
+        var rest = whitespaceIndex < 0 ? null : text.substring(whitespaceIndex + 1).trim();
+
+        var answersStart = token.indexOf(COMMAND_PARAMETERS_SEPARATOR);
+        String name;
+        String answersPart;
+        if (answersStart < 0) {
+            // No '?': there is no answer text for a '#' to belong to, so a trailing '#...' is
+            // dropped exactly as it always was, since typed text never carries dynamic params.
+            var nameEnd = token.indexOf(DYNAMIC_PARAMETERS_SEPARATOR);
+            name = nameEnd < 0 ? token.substring(COMMAND_START.length()) : token.substring(COMMAND_START.length(), nameEnd);
+            answersPart = "";
+        } else {
+            name = token.substring(COMMAND_START.length(), answersStart);
+            answersPart = token.substring(answersStart + COMMAND_PARAMETERS_SEPARATOR.length());
+        }
+
+        var addresseeStart = name.indexOf(ADDRESSEE_SEPARATOR);
+        descriptor.command = addresseeStart < 0 ? name : name.substring(0, addresseeStart);
+        descriptor.addressee = addresseeStart < 0 ? null
+            : StringUtils.hasText(name.substring(addresseeStart + 1)) ? name.substring(addresseeStart + 1) : null;
+
+        var answers = new ArrayList<>(parseAnswers(answersPart, true));
+        if (StringUtils.hasText(rest)) {
+            answers.add(rest);
+        }
+        descriptor.answers = List.copyOf(answers);
+        return descriptor;
+    }
+
+    private static int indexOfWhitespace(String text) {
+        for (int index = 0; index < text.length(); index++) {
+            if (Character.isWhitespace(text.charAt(index))) {
+                return index;
+            }
+        }
+        return -1;
     }
 
     private static List<String> parseAnswers(String answersPart, boolean isCommand) {

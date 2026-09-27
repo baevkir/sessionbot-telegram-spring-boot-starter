@@ -83,10 +83,11 @@ class UpdateWrapperTest {
         }
 
         @Test
+        @DisplayName("a typed command's # is literal text in the answer, never a control param")
         void typedCommandCannotSetControlParams() {
             var wrapper = UpdateWrapper.wrap(Fixtures.messageUpdate(1, 1L, 1, "/order?buy#approved"));
             assertThat(wrapper.getCommand()).isEqualTo("order");
-            assertThat(wrapper.getAnswers()).containsExactly("buy");
+            assertThat(wrapper.getAnswers()).containsExactly("buy#approved");
             assertThat(wrapper.getDynamicParams().hasParam("approved")).isFalse();
         }
 
