@@ -164,6 +164,24 @@ class TelegramUpdateHandlerTest {
             .verifyComplete();
     }
 
+    @DisplayName("I1: CommandContext.getAnswers() inside the command method has no duplicate for the just-arrived answer")
+    @Test
+    void commandContextAnswersAreNotDuplicated() {
+        var handler = handler(ALLOW);
+        var order = springContext.getBean(OrderCommand.class);
+        var updates = Flux.just(
+            Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "/order?buy")),
+            Fixtures.wrap(Fixtures.callbackUpdate(2, Fixtures.CHAT_ID, 101, "book")));
+
+        StepVerifier.create(handler.handleUpdates(updates).filter(m -> m instanceof SendMessage)
+                .map(m -> ((SendMessage) m).getText()))
+            .expectNextMatches(text -> text.contains("product"))
+            .expectNext("buy:book")
+            .verifyComplete();
+
+        assertThat(order.capturedContextAnswers()).containsExactly("buy", "book");
+    }
+
     @DisplayName("per-chat updates process in arrival order under concatMap")
     @Test
     void perChatOrderingIsPreserved() {

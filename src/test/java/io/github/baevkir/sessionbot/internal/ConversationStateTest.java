@@ -77,6 +77,44 @@ class ConversationStateTest {
     }
 
     @Test
+    @DisplayName("commitPendingAnswers folds the pending answers in once, then getPendingArguments is empty")
+    void commitPendingAnswersFoldsAndClearsPending() {
+        var context = ConversationState.forCommand(Fixtures.commandWrapper("/order?buy"));
+        context.addUpdate(Fixtures.answerWrapper(2, 100, "book"));
+        assertThat(context.getPendingArguments()).containsExactly("book");
+
+        context.commitPendingAnswers(false);
+
+        assertThat(context.getPendingArguments()).isEmpty();
+        assertThat(context.getAnswers()).containsExactly("buy", "book");
+    }
+
+    @Test
+    @DisplayName("commitPendingAnswers adds one empty answer when nothing is pending and skipping is allowed")
+    void commitPendingAnswersAddsEmptyAnswerWhenSkipped() {
+        var context = ConversationState.forCommand(Fixtures.commandWrapper("/order?note&hello"));
+        context.addUpdate(Fixtures.answerWrapper(2, 100, "#skip:2"));
+        assertThat(context.getPendingArguments()).isEmpty();
+
+        context.commitPendingAnswers(true);
+
+        assertThat(context.getAnswers()).containsExactly("note", "hello", "");
+    }
+
+    @Test
+    @DisplayName("addUpdate after a commit starts a fresh pending batch for the new update")
+    void addUpdateAfterCommitStartsNewPendingBatch() {
+        var context = ConversationState.forCommand(Fixtures.commandWrapper("/order?buy"));
+        context.addUpdate(Fixtures.answerWrapper(2, 100, "book"));
+        context.commitPendingAnswers(false);
+
+        context.addUpdate(Fixtures.answerWrapper(3, 101, "pen"));
+
+        assertThat(context.getPendingArguments()).containsExactly("pen");
+        assertThat(context.getAnswers()).containsExactly("buy", "book", "pen");
+    }
+
+    @Test
     @DisplayName("refreshContext rebuild keeps command answers and re-applies the latest update")
     void refreshRebuildSemantics() {
         var command = Fixtures.commandWrapper("/order?buy");

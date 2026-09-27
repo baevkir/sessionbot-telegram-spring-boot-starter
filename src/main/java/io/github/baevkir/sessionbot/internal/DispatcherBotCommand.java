@@ -47,12 +47,7 @@ public class DispatcherBotCommand implements RegisteredCommand {
         if (invocationResult.hasErrors()) {
             return Mono.error(invocationResult.getInvocationError());
         }
-        var pendingArguments = commandContext.getPendingArguments();
-        if (pendingArguments.isEmpty() && commandContext.getDynamicParams().canSkipAnswer(0)) {
-            commandContext.addAnswer("");
-        } else {
-            pendingArguments.forEach(commandContext::addAnswer);
-        }
+        commandContext.commitPendingAnswers(commandContext.getDynamicParams().canSkipAnswer(0));
         if (invocationResult.getInvocationArgument() != null) {
             commandContext.startProgress();
             log.debug("Command '{}' needs more input, prompting user", commandsDispatcher.getCommandId());

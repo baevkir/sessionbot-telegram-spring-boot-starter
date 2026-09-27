@@ -27,6 +27,7 @@ public final class ConversationState implements CommandContext {
     private final List<String> answers = new ArrayList<>();
     private final List<Message> questionMessages = new ArrayList<>();
     private ContextState state = ContextState.open;
+    private boolean pendingAnswersCommitted;
 
     private ConversationState(UpdateWrapper openingUpdate, boolean command) {
         this.openingUpdate = openingUpdate;
@@ -116,14 +117,26 @@ public final class ConversationState implements CommandContext {
         return this;
     }
 
-    public ConversationState addAnswer(String answer) {
-        answers.add(answer);
+    /**
+     * Folds {@link #getPendingArguments()} into the committed answers: the pending answers themselves
+     * when there are any, else a single empty answer when {@code canSkipAnswer} allows skipping.
+     * Afterward {@link #getPendingArguments()} returns an empty list until the next {@link #addUpdate}.
+     */
+    public ConversationState commitPendingAnswers(boolean canSkipAnswer) {
+        var pending = getPendingArguments();
+        if (pending.isEmpty() && canSkipAnswer) {
+            answers.add("");
+        } else {
+            answers.addAll(pending);
+        }
+        pendingAnswersCommitted = true;
         return this;
     }
 
     public ConversationState addUpdate(UpdateWrapper update) {
         Assert.isTrue(!update.isCommand(), "Command should create new context");
         updates.add(update);
+        pendingAnswersCommitted = false;
         return this;
     }
 
@@ -141,8 +154,14 @@ public final class ConversationState implements CommandContext {
         return Collections.unmodifiableList(updates);
     }
 
-    /** The answers the latest update carries, not yet folded into {@link #getAnswers()}'s committed part. */
+    /**
+     * The answers the latest update carries, not yet folded into {@link #getAnswers()}'s committed part.
+     * Empty once {@link #commitPendingAnswers} has run for this update, until the next {@link #addUpdate}.
+     */
     public List<String> getPendingArguments() {
+        if (pendingAnswersCommitted) {
+            return List.of();
+        }
         return getCurrentUpdate().map(UpdateWrapper::getAnswers).orElse(List.of());
     }
 }
