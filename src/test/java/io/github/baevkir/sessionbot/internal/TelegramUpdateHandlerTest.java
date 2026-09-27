@@ -587,6 +587,18 @@ class TelegramUpdateHandlerTest {
             .verifyComplete();
     }
 
+    @DisplayName("M4: a bot-username configured with a leading @ still matches its own addressed commands")
+    @Test
+    void botUsernameWithLeadingAtIsNormalized() {
+        var handler = handlerFor("@MyBot");
+
+        StepVerifier.create(handler.handleUpdates(Flux.just(Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "/order@MyBot?buy&book"))))
+                .filter(message -> message instanceof SendMessage)
+                .map(message -> ((SendMessage) message).getText()))
+            .expectNext("buy:book")
+            .verifyComplete();
+    }
+
     @DisplayName("a group command addressed to another bot is ignored: no reply, no /help")
     @Test
     void commandAddressedToAnotherBotIsIgnored() {

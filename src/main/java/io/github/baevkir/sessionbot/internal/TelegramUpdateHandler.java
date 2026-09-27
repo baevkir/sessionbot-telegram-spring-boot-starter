@@ -92,7 +92,7 @@ public class TelegramUpdateHandler {
         this.textHandlers = textHandlers;
         this.permitCommands = permitCommands == null ? List.of() : List.copyOf(permitCommands);
         this.guardDeniedHandler = Objects.requireNonNull(guardDeniedHandler, "guardDeniedHandler");
-        this.botUsername = botUsername;
+        this.botUsername = botUsername == null || !botUsername.startsWith("@") ? botUsername : botUsername.substring(1);
     }
 
     public Flux<PartialBotApiMethod<?>> handleUpdates(Flux<UpdateWrapper> updates) {
