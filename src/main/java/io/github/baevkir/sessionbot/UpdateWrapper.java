@@ -23,6 +23,7 @@ import java.util.*;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class UpdateWrapper {
     private Update update;
+    @Getter(AccessLevel.NONE)
     private MessageDescriptor messageDescriptor;
 
     public static UpdateWrapper wrap(Update update) {
