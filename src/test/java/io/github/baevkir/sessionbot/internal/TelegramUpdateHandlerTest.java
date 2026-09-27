@@ -608,4 +608,21 @@ class TelegramUpdateHandlerTest {
                 Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "/order@OtherBot?buy&book")))))
             .verifyComplete();
     }
+
+    @DisplayName("M8: an in-progress conversation survives a command ignored as addressed to another bot")
+    @Test
+    void inProgressConversationSurvivesAnIgnoredCommand() {
+        var handler = handlerFor("MyBot");
+        var updates = Flux.just(
+            Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "/order?buy")),
+            Fixtures.wrap(Fixtures.messageUpdate(2, Fixtures.CHAT_ID, 101, "/order@OtherBot")),
+            Fixtures.wrap(Fixtures.callbackUpdate(3, Fixtures.CHAT_ID, 102, "book")));
+
+        StepVerifier.create(handler.handleUpdates(updates)
+                .filter(message -> message instanceof SendMessage)
+                .map(message -> ((SendMessage) message).getText()))
+            .expectNextMatches(text -> text.contains("product"))
+            .expectNext("buy:book")
+            .verifyComplete();
+    }
 }
