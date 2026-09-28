@@ -11,7 +11,7 @@
 
     <groupId>io.github.baevkir</groupId>
     <artifactId>sessionbot-telegram-spring-boot-starter</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
 
     <name>sessionbot-telegram-spring-boot-starter</name>
     <description>Spring Boot starter for Telegram bots whose commands are multi-step conversations</description>
