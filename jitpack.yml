@@ -1,7 +1,10 @@
-# JitPack's images ship JDKs only up to 21, so install Java 25 (Temurin) with SDKMAN first.
+# JitPack's images ship JDKs only up to 21 and Maven 3.6.1, while Spring Boot 4's plugins need
+# Maven 3.6.3+; install Java 25 (Temurin) and the latest Maven with SDKMAN first.
 before_install:
   - sdk install java $(sdk list java | grep -Eo '25(\.[0-9]+)*-tem' | head -1)
   - sdk use java $(sdk list java | grep -Eo '25(\.[0-9]+)*-tem' | head -1)
+  - sdk install maven
 install:
   - java -version
+  - mvn -version
   - mvn -B -DskipTests install
