@@ -80,6 +80,8 @@ First public release.
 - `/help` releases the chat at once; bare updates no longer accumulate in one context.
 - An update with no resolvable chat no longer terminates the inbound stream.
 - HTML in command descriptions and prompts is escaped.
+- The jar now ships `spring-configuration-metadata.json`, so IDEs complete and document the
+  `sessionbot.telegram.*` properties.
 
 ### Known limitations
 

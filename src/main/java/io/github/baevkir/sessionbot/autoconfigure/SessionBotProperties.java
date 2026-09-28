@@ -9,7 +9,12 @@ import java.util.List;
 @Data
 @ConfigurationProperties(prefix = "sessionbot.telegram")
 public class SessionBotProperties {
+    /** The bot's Telegram API token; together with {@code bot-username} it activates the bot. */
     private String token;
+    /**
+     * The bot's Telegram user name, without the leading {@code @}; group commands addressed to another bot
+     * ({@code /order@OtherBot}) are ignored.
+     */
     private String botUsername;
     /** Bot-wide language tag for built-in labels (e.g. en, uk, ru). */
     private String language = "en";
