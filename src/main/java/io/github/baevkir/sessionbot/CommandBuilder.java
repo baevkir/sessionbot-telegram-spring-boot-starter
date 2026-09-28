@@ -4,8 +4,7 @@ import io.github.baevkir.sessionbot.internal.WireFormat;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -89,13 +88,13 @@ public class CommandBuilder {
 
     public String build() {
         StringBuilder result = new StringBuilder();
-        if (StringUtils.isNotEmpty(command)) {
+        if (StringUtils.hasLength(command)) {
             result.append(COMMAND_START).append(command);
-            if(CollectionUtils.isNotEmpty(answers)) {
+            if (!answers.isEmpty()) {
                 result.append(COMMAND_PARAMETERS_SEPARATOR);
             }
         }
-        if (CollectionUtils.isNotEmpty(answers)) {
+        if (!answers.isEmpty()) {
             result.append(answers.stream().map(WireFormat::encodeAnswer).collect(Collectors.joining(PARAMETER_SEPARATOR)));
         }
         if (!params.isEmpty()) {

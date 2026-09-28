@@ -1,7 +1,6 @@
 package io.github.baevkir.sessionbot.internal;
 
 import io.github.baevkir.sessionbot.error.ErrorHandler;
-import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.PartialBotApiMethod;
 import reactor.core.publisher.Mono;
@@ -9,11 +8,10 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.GenericTypeResolver;
 
 import jakarta.annotation.PostConstruct;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.apache.commons.lang3.exception.ExceptionUtils.getThrowableList;
 
 /**
  * Routes a thrown error to an {@link ErrorHandler}, walking the cause chain from the root outward.
@@ -43,7 +41,7 @@ public class ErrorHandlerFactory {
     }
 
     public Mono<? extends PartialBotApiMethod<?>> handle(Throwable exception) {
-        for (Throwable currentError : Lists.reverse(getThrowableList(exception))) {
+        for (Throwable currentError : causeChain(exception).reversed()) {
             ErrorHandler<Throwable> errorHandler = findHandler(currentError.getClass());
             if (errorHandler != null) {
                 log.debug("Handling {} with {}", currentError.getClass().getSimpleName(), errorHandler.getClass().getSimpleName());
@@ -52,6 +50,15 @@ public class ErrorHandlerFactory {
         }
         log.error("Error during chat bot command", exception);
         return Mono.empty();
+    }
+
+    /** {@code exception} and its causes, outermost first; a cause that loops back ends the chain. */
+    private static List<Throwable> causeChain(Throwable exception) {
+        var chain = new ArrayList<Throwable>();
+        for (var current = exception; current != null && !chain.contains(current); current = current.getCause()) {
+            chain.add(current);
+        }
+        return chain;
     }
 
     private ErrorHandler<Throwable> findHandler(Class<?> errorType) {

@@ -106,6 +106,17 @@ class ErrorHandlerFactoryTest {
     }
 
     @Test
+    @DisplayName("a cause chain that loops back on itself is walked once, not forever")
+    void cyclicCauseChainTerminates() {
+        var outer = new IllegalStateException("outer");
+        var inner = new IllegalArgumentException("inner", outer);
+        outer.initCause(inner);
+        StepVerifier.create(factory.handle(new BotCommandException(context, outer)))
+            .assertNext(m -> assertThat(((SendMessage) m).getText()).isEqualTo("Something went wrong. Please try again later."))
+            .verifyComplete();
+    }
+
+    @Test
     @DisplayName("unhandled exception type yields empty (swallowed)")
     void noHandlerYieldsEmpty() {
         StepVerifier.create(factory.handle(new IllegalStateException("unmapped")))

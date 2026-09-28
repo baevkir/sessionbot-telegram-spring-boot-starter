@@ -7,7 +7,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
@@ -57,7 +57,7 @@ public class ParameterDescriptor {
     private static List<ParameterOption> getRenderingOptions(RenderingOption[] renderingOptions) {
         return Arrays.stream(renderingOptions)
             .map(option -> new ParameterOption(option.value(),
-                StringUtils.isNotBlank(option.displayValue()) ? option.displayValue() : option.value()))
+                StringUtils.hasText(option.displayValue()) ? option.displayValue() : option.value()))
             .toList();
     }
 }

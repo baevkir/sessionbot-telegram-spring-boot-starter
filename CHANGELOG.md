@@ -59,6 +59,10 @@ First public release.
 - **Tests** that mock `CommandsSessionBot` can drop the mock when the token is empty (the bot does
   not start), or import it from `…sessionbot.internal`. Tests touching `MethodMatcher`,
   `MessageDescriptor` or `GuardResolver` now depend on internals.
+- **Fewer transitive dependencies.** The library no longer brings Guava, commons-collections4 or
+  Lombok onto your classpath (Lombok is `provided`), and it no longer pins commons-lang3 (it still
+  arrives, newer, through `telegrambots-meta`). A bot that used any of these without declaring it
+  must add it to its own pom.
 
 ### Added
 

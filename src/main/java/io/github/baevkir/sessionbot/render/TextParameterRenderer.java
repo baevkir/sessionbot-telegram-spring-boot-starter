@@ -15,8 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.apache.commons.lang3.ObjectUtils.isEmpty;
-import static org.apache.commons.lang3.ObjectUtils.isNotEmpty;
+import static org.springframework.util.CollectionUtils.isEmpty;
 
 public class TextParameterRenderer implements ParameterRenderer {
     private final BotLabels labels;
@@ -54,7 +53,7 @@ public class TextParameterRenderer implements ParameterRenderer {
                         .build())
                 );
             }
-            if (isNotEmpty(rowsInline)) {
+            if (!rowsInline.isEmpty()) {
                 messageBuilder.replyMarkup(InlineKeyboardMarkup.builder().keyboard(rowsInline).build());
             }
             return messageBuilder.build();
