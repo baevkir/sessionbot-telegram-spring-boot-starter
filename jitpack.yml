@@ -1,0 +1,7 @@
+# JitPack's images ship JDKs only up to 21, so install Java 25 (Temurin) with SDKMAN first.
+before_install:
+  - sdk install java $(sdk list java | grep -Eo '25(\.[0-9]+)*-tem' | head -1)
+  - sdk use java $(sdk list java | grep -Eo '25(\.[0-9]+)*-tem' | head -1)
+install:
+  - java -version
+  - mvn -B -DskipTests install

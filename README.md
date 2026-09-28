@@ -275,3 +275,7 @@ also covers subclasses of its exception type, and the most specific one wins.
 
 A `CommandGuard` is not one of these beans — it is resolved by the type named in `@Guarded`, so it
 only needs to exist, under any bean name.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

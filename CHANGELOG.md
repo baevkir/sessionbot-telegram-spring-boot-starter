@@ -66,6 +66,7 @@ First public release.
 
 ### Added
 
+- Released under the MIT License.
 - Group chats: `/cmd@ThisBot` runs, `/cmd@OtherBot` is ignored (see README for the current
   limitation).
 - `TextHandler.supports(text)` — several text handlers can split the work.
