@@ -9,18 +9,39 @@
         <version>4.1.0</version>
     </parent>
 
-    <groupId>com.kb</groupId>
-    <artifactId>telegram-session-bot</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <groupId>io.github.baevkir</groupId>
+    <artifactId>sessionbot-telegram-spring-boot-starter</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
 
-    <name>telegram-session-bot</name>
+    <name>sessionbot-telegram-spring-boot-starter</name>
+    <description>Spring Boot starter for Telegram bots whose commands are multi-step conversations</description>
+    <url>https://github.com/baevkir/sessionbot-telegram-spring-boot-starter</url>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/license/mit</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>baevkir</id>
+            <name>Kyrylo Baiev</name>
+            <url>https://github.com/baevkir</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/baevkir/sessionbot-telegram-spring-boot-starter</url>
+        <connection>scm:git:https://github.com/baevkir/sessionbot-telegram-spring-boot-starter.git</connection>
+        <developerConnection>scm:git:git@github.com:baevkir/sessionbot-telegram-spring-boot-starter.git</developerConnection>
+    </scm>
 
     <properties>
         <java.version>25</java.version>
         <telegram-bot.version>10.0.0</telegram-bot.version>
-        <guava.version>33.0.0-jre</guava.version>
-        <commons-collections4.version>4.1</commons-collections4.version>
-        <commons-lang3.version>3.18.0</commons-lang3.version>
     </properties>
 
     <dependencies>
@@ -30,20 +51,13 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-autoconfigure</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.telegram</groupId>
@@ -64,34 +78,10 @@
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>${guava.version}</version>
-        </dependency>
 
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-collections4</artifactId>
-            <version>${commons-collections4.version}</version>
-        </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -118,14 +108,12 @@
                             <artifactId>lombok</artifactId>
                             <version>${lombok.version}</version>
                         </path>
+                        <path>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-configuration-processor</artifactId>
+                            <version>${project.parent.version}</version>
+                        </path>
                     </annotationProcessorPaths>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-deploy-plugin</artifactId>
-                <configuration>
-                    <altDeploymentRepository>internal.repo::default::file://${project.build.directory}/mvn-repo
-                    </altDeploymentRepository>
                 </configuration>
             </plugin>
         </plugins>

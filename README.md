@@ -11,13 +11,25 @@ per-chat session until the command has everything it needs to run.
 - Spring Boot 4.1
 - `org.telegram:telegrambots-{meta,client,longpolling}` 10
 
+The library is published on JitPack. Add the repository and the dependency:
+
 ```xml
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+
 <dependency>
-    <groupId>com.kb</groupId>
-    <artifactId>telegram-session-bot</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <groupId>com.github.baevkir</groupId>
+    <artifactId>sessionbot-telegram-spring-boot-starter</artifactId>
+    <version>v0.1.0</version>
 </dependency>
 ```
+
+Java packages live under `io.github.baevkir.sessionbot`; everything under
+`io.github.baevkir.sessionbot.internal` is implementation detail with no compatibility guarantee.
 
 ## Quick start
 
@@ -79,19 +91,43 @@ InlineKeyboardButton.builder()
 ```
 
 Telegram caps callback data at 64 bytes; `CommandBuilder.build()` only logs a warning when the
-result exceeds that limit, so keep command and answer strings short.
+result exceeds that limit, so keep command and answer strings short. The builder escapes the
+characters the format reserves — `% ? & #` in answers, and additionally `:` in dynamic parameters
+(where it splits key from value) — so an answer or parameter value round-trips through those
+characters. Two exceptions: an answer-only button (no `command(...)`) whose first answer starts with
+`/` is read back as a command, not as answers, since a leading `/` is not itself escaped; and trailing
+empty answers are dropped on the way back in, since they are joined and split with the same `&`
+separator.
+
+Only button presses are read as wire format. Text the user types while a command waits for input is
+taken as one answer, verbatim — `Tom & Jerry` stays a single value — and a typed command such as
+`/order?buy` may carry answers but never the control parameters (`#...`) a button can.
+
+### The conversation: `CommandContext`
+
+A command method, guard, handler or renderer can take a `CommandContext` — a read-only view of the
+chat's conversation: `getChatId()`, `getUser()`, `getCommand()`, `getAnswers()`,
+`getCommandUpdate()` (the command, or the bare update itself outside a command),
+`getCurrentUpdate()`, `getCallbackMessage()` (the message whose button was tapped) and
+`getDynamicParams()`. Only the library advances the conversation. In tests, build one with
+`CommandContext.of(update)`.
 
 ## Bare updates
 
 An update that is not a command — plain text, a shared contact, an uploaded document — is routed to
 a bean of the matching handler interface:
 
-- `TextHandler` — plain text sent outside any command flow; the first registered bean handles it.
+- `TextHandler` — plain text sent outside any command flow; the first bean whose `supports(String)`
+  matches wins.
 - `ContactHandler` — a shared contact; the first bean whose `supports(Contact)` matches wins.
 - `DocumentHandler` — an uploaded document; the first bean whose `supports(Document)` matches wins.
 
 With no handler registered, or none matching, the update falls through to the default `/help`
 behavior.
+
+**Known limitation:** if a bare-update handler (or the fallback `/help`) fails, the error reply is
+sent and the chat's update stream ends there — any further updates already queued for that chat in
+the same burst are dropped, not merely delayed. The chat resumes normally on its next incoming update.
 
 ## Authentication
 
@@ -106,10 +142,11 @@ AuthInterceptor authInterceptor(MyUserService users) {
 }
 ```
 
-`sessionbot.telegram.permit-commands` (default `start`) lists commands that skip the interceptor
+`sessionbot.telegram.permit-commands` (empty by default) lists commands that skip the interceptor
 entirely — typically an entry-point command that has to run before the caller can be recognized at
 all. It does **not** bypass command guards (below): a permitted command still gets refused if a
-guard denies it.
+guard denies it. A bot whose `/start` must admit unknown callers sets
+`permit-commands: [start]`.
 
 ## Command guards
 
@@ -189,6 +226,18 @@ out of scope for now. Telegram clients also cache the command menu, so a change 
 show; access never depends on the menu, since guards are re-checked on every call regardless of what
 the menu currently displays.
 
+## Group chats
+
+In a group, Telegram delivers commands as `/order@MyBot`. The bot runs a command addressed to its
+own `bot-username` (case-insensitive) or to no one, and ignores one addressed to another bot — no
+reply, no `/help`.
+
+A conversation belongs to the chat, not to the member who is typing: in a group, any member's reply
+or button tap continues the open conversation, and the `AuthInterceptor` and command guards judge the
+member who opened it, not whoever answers. A guarded multi-step command is therefore **not safe in
+groups yet** — any group member can continue (and complete) a conversation another member started
+under the permissions of whoever opened it.
+
 ## Configuration reference
 
 | Property | Default | Description |
@@ -198,25 +247,35 @@ the menu currently displays.
 | `sessionbot.telegram.language` | `en` | Bot-wide language tag for built-in labels (prompts, `/help` chrome, ...). |
 | `sessionbot.telegram.chat-idle-ttl` | `30m` | Idle period after which an inactive chat's update stream is released. |
 | `sessionbot.telegram.max-concurrent-chats` | `256` | Maximum number of chats processed concurrently (per-chat fan-out). |
-| `sessionbot.telegram.permit-commands` | `start` | Commands that run without consulting the `AuthInterceptor` (see Authentication above). |
+| `sessionbot.telegram.permit-commands` | *(empty)* | Commands that run without consulting the `AuthInterceptor` (see Authentication above). |
 
 Setting `token` and `bot-username` is what activates the auto-configuration at all; every other
 property is inert until then.
 
 ## Overriding beans
 
-Nearly every bean `CommandsSessionBotConfiguration` declares is `@ConditionalOnMissingBean`, so a
+Nearly every bean `SessionBotAutoConfiguration` declares is `@ConditionalOnMissingBean`, so a
 consuming app overrides any of them by simply declaring its own bean of the same type — or, for the
 name-qualified ones below, the same bean name:
 
 - By type: `TelegramClient`, `TelegramBotsLongPollingApplication`, `MessageExecutor`,
-  `OutboundMessageBus`, `GuardDeniedHandler`, `CommandMenuService`, `TelegramUpdateHandler`,
-  `InboundUpdateBus`, `HelpCommand`, `CommandsFactory`, `AuthInterceptor`, `LocaleProvider`,
-  `BotLabels`.
+  `OutboundMessageBus`, `GuardDeniedHandler`, `CommandMenuService`, `InboundUpdateBus`,
+  `AuthInterceptor`, `LocaleProvider`, `BotLabels`. (`HelpCommand` and `CommandsFactory` are
+  internal and no longer overridable beans; to change the reply to unknown or refused commands
+  override `GuardDeniedHandler`, or handle plain text with a `TextHandler`.)
 - By name: the built-in `ParameterRenderer`s (`defaultParameterRenderer`, `textParameterRenderer`,
   `booleanParameterRenderer`, `dateParameterRenderer`, `timeParameterRenderer`), the default
   `ErrorHandler`s (`botCommandErrorHandler`, `botAuthErrorHandler`) and
   `sessionbotLabelsMessageSource` (the `MessageSource` backing built-in labels).
 
+When a command throws, the default `botCommandErrorHandler` logs the error and replies with a
+generic, localized "something went wrong" — never the exception's own message, which may expose
+internals. To show a user a specific reply, declare an `ErrorHandler<YourException>` bean; a handler
+also covers subclasses of its exception type, and the most specific one wins.
+
 A `CommandGuard` is not one of these beans — it is resolved by the type named in `@Guarded`, so it
 only needs to exist, under any bean name.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
