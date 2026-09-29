@@ -1,4 +1,6 @@
-# telegram-session-bot
+# sessionbot-telegram-spring-boot-starter
+
+[![JitPack](https://jitpack.io/v/baevkir/sessionbot-telegram-spring-boot-starter.svg)](https://jitpack.io/#baevkir/sessionbot-telegram-spring-boot-starter)
 
 A Spring Boot auto-configuration starter for building Telegram bots whose commands behave like
 multi-step conversations. A command can ask the caller for missing arguments one at a time, over
@@ -9,9 +11,15 @@ per-chat session until the command has everything it needs to run.
 
 - Java 25
 - Spring Boot 4.1
-- `org.telegram:telegrambots-{meta,client,longpolling}` 10
 
-The library is published on JitPack. Add the repository and the dependency:
+The Telegram client (`org.telegram:telegrambots-*` 10) comes with the starter; you do not declare it.
+
+## Installation
+
+Releases are published on [JitPack](https://jitpack.io/#baevkir/sessionbot-telegram-spring-boot-starter).
+The version is the git tag, `v` included.
+
+**Maven** — add the JitPack repository and the dependency:
 
 ```xml
 <repositories>
@@ -21,15 +29,52 @@ The library is published on JitPack. Add the repository and the dependency:
     </repository>
 </repositories>
 
+<dependencies>
+    <dependency>
+        <groupId>com.github.baevkir</groupId>
+        <artifactId>sessionbot-telegram-spring-boot-starter</artifactId>
+        <version>v0.1.0</version>
+    </dependency>
+</dependencies>
+```
+
+**Gradle:**
+
+```kotlin
+repositories {
+    mavenCentral()
+    maven("https://jitpack.io")
+}
+
+dependencies {
+    implementation("com.github.baevkir:sessionbot-telegram-spring-boot-starter:v0.1.0")
+}
+```
+
+**A local build of `master`** — to try unreleased changes, install the snapshot into your local
+Maven repository and depend on the project's own coordinates (no JitPack repository needed):
+
+```bash
+git clone https://github.com/baevkir/sessionbot-telegram-spring-boot-starter.git
+cd sessionbot-telegram-spring-boot-starter
+mvn install -DskipTests      # needs JDK 25
+```
+
+```xml
 <dependency>
-    <groupId>com.github.baevkir</groupId>
+    <groupId>io.github.baevkir</groupId>
     <artifactId>sessionbot-telegram-spring-boot-starter</artifactId>
-    <version>v0.1.0</version>
+    <version>0.2.0-SNAPSHOT</version>
 </dependency>
 ```
 
+A snapshot only exists on the machine that installed it, so CI and Docker builds should use a
+JitPack release.
+
 Java packages live under `io.github.baevkir.sessionbot`; everything under
 `io.github.baevkir.sessionbot.internal` is implementation detail with no compatibility guarantee.
+Upgrading from the pre-release `com.kb:telegram-session-bot`? See the migration notes in
+[CHANGELOG.md](CHANGELOG.md).
 
 ## Quick start
 
