@@ -159,13 +159,19 @@ chat's conversation: `getChatId()`, `getUser()`, `getCommand()`, `getAnswers()`,
 
 ## Bare updates
 
-An update that is not a command — plain text, a shared contact, an uploaded document — is routed to
+An update that is not a command — plain text, a shared contact, an uploaded document, a photo — is routed to
 a bean of the matching handler interface:
 
 - `TextHandler` — plain text sent outside any command flow; the first bean whose `supports(String)`
   matches wins.
 - `ContactHandler` — a shared contact; the first bean whose `supports(Contact)` matches wins.
 - `DocumentHandler` — an uploaded document; the first bean whose `supports(Document)` matches wins.
+- `PhotoHandler` — a photo; the first bean whose `supports(List<PhotoSize>)` matches wins. The list
+  holds the sizes Telegram sent for that one photo; the caption and media group id are on
+  `context.getCommandUpdate()` (`getCaption()`, `getMediaGroupId()`). An album arrives as one update
+  per photo sharing a media group id.
+
+Dispatch tries contact, then document, then photo, then text, and the first match handles the update.
 
 With no handler registered, or none matching, the update falls through to the default `/help`
 behavior.
@@ -234,7 +240,7 @@ the first — so revoking access takes effect on the caller's very next tap. An 
 result from a guard is treated as a denial, the same as returning `false`.
 
 That ordering does not hold for the fallback `/help` that answers a non-command update (plain text,
-a sticker, a photo) with no active conversation and no matching handler: that path never runs the
+a sticker, a photo no `PhotoHandler` takes) with no active conversation and no matching handler: that path never runs the
 `AuthInterceptor`, so a guard filtering `/help`'s command list sees the raw Telegram sender, not the
 name the interceptor would otherwise have normalized it to.
 

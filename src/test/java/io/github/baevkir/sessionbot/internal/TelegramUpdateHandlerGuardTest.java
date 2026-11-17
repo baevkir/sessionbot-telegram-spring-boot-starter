@@ -104,7 +104,7 @@ class TelegramUpdateHandlerGuardTest {
         when(commandsFactory.getCommand(any())).thenReturn(admin);
         when(commandsFactory.getHelpCommand()).thenReturn(help);
         var handler = new TelegramUpdateHandler(commandsFactory, ALLOW_ALL, mock(MessageExecutor.class),
-            List.of(), List.of(), List.of(), List.of());
+            List.of(), List.of(), List.of(), List.of(), List.of());
 
         StepVerifier.create(handler.handleUpdates(adminCommand()))
             .assertNext(result -> assertThat(text(result)).isEqualTo("help"))
@@ -115,7 +115,7 @@ class TelegramUpdateHandlerGuardTest {
         CommandsFactory commandsFactory = mock(CommandsFactory.class);
         when(commandsFactory.getCommand(any())).thenReturn(command);
         return new TelegramUpdateHandler(commandsFactory, auth, mock(MessageExecutor.class),
-            List.of(), List.of(), List.of(), permitCommands, DENIED);
+            List.of(), List.of(), List.of(), List.of(), permitCommands, DENIED);
     }
 
     private static RegisteredCommand guardedCommand(CommandGuard guard) {

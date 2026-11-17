@@ -32,6 +32,7 @@ import io.github.baevkir.sessionbot.i18n.BotLabels;
 import io.github.baevkir.sessionbot.i18n.ConfiguredLocaleProvider;
 import io.github.baevkir.sessionbot.i18n.LocaleProvider;
 import io.github.baevkir.sessionbot.menu.CommandMenuService;
+import io.github.baevkir.sessionbot.handler.PhotoHandler;
 import io.github.baevkir.sessionbot.handler.TextHandler;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -113,12 +114,14 @@ public class SessionBotAutoConfiguration {
             ObjectProvider<DocumentHandler> documentHandlers,
             ObjectProvider<ContactHandler> contactHandlers,
             ObjectProvider<TextHandler> textHandlers,
+            ObjectProvider<PhotoHandler> photoHandlers,
             SessionBotProperties properties,
             GuardDeniedHandler guardDeniedHandler) {
         return new TelegramUpdateHandler(commandsFactory, authInterceptor, messageExecutor,
             documentHandlers.orderedStream().toList(),
             contactHandlers.orderedStream().toList(),
             textHandlers.orderedStream().toList(),
+            photoHandlers.orderedStream().toList(),
             properties.getPermitCommands(),
             guardDeniedHandler,
             properties.getBotUsername());

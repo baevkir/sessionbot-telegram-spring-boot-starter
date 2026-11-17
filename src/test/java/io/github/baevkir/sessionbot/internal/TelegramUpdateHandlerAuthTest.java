@@ -28,7 +28,7 @@ class TelegramUpdateHandlerAuthTest {
         when(commandsFactory.getCommand(any())).thenReturn(command);
         MessageExecutor messageExecutor = mock(MessageExecutor.class);
         return new TelegramUpdateHandler(commandsFactory, authInterceptor, messageExecutor,
-            List.of(), List.of(), List.of(), permitCommands);
+            List.of(), List.of(), List.of(), List.of(), permitCommands);
     }
 
     @Test

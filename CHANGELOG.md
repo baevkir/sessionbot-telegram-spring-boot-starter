@@ -2,6 +2,14 @@
 
 ## 0.2.0 — unreleased
 
+### Added
+
+- **`PhotoHandler`.** A bean of this interface receives a bare photo (`supports(List<PhotoSize>)`,
+  `handle(CommandContext, List<PhotoSize>)`), like `DocumentHandler`; bare updates are now routed
+  contact, document, photo, then text. `UpdateWrapper` gains `getPhotos()`, `getCaption()` and
+  `getMediaGroupId()`. `TelegramUpdateHandler`'s constructors take a `List<PhotoHandler>` after the
+  text handlers; a photo with no matching handler still falls back to `/help`.
+
 ## 0.1.0 — 2026-09-28
 
 First public release.
