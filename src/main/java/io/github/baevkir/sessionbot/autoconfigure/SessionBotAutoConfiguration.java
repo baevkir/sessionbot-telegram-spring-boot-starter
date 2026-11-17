@@ -7,12 +7,14 @@ import io.github.baevkir.sessionbot.render.ParameterRenderer;
 import io.github.baevkir.sessionbot.render.TextParameterRenderer;
 import io.github.baevkir.sessionbot.render.TimeParameterRenderer;
 import io.github.baevkir.sessionbot.internal.CommandsSessionBot;
+import io.github.baevkir.sessionbot.FileDownloader;
 import io.github.baevkir.sessionbot.InboundUpdateBus;
 import io.github.baevkir.sessionbot.MessageExecutor;
 import io.github.baevkir.sessionbot.OutboundMessageBus;
 import io.github.baevkir.sessionbot.internal.SinkInboundUpdateBus;
 import io.github.baevkir.sessionbot.internal.SinkOutboundMessageBus;
 import io.github.baevkir.sessionbot.internal.TelegramClientMessageExecutor;
+import io.github.baevkir.sessionbot.internal.TelegramFileDownloader;
 import io.github.baevkir.sessionbot.internal.TelegramUpdateHandler;
 import io.github.baevkir.sessionbot.AuthInterceptor;
 import io.github.baevkir.sessionbot.internal.CommandsFactory;
@@ -79,6 +81,13 @@ public class SessionBotAutoConfiguration {
         var application = new TelegramBotsLongPollingApplication();
         application.registerBot(properties.getToken(), bot);
         return application;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public FileDownloader fileDownloader(SessionBotProperties properties) {
+        return new TelegramFileDownloader(new OkHttpTelegramClient(
+                TelegramFileDownloader.httpClient(properties.getFileTimeout()), properties.getToken()));
     }
 
     @Bean

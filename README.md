@@ -173,6 +173,12 @@ a bean of the matching handler interface:
 
 Dispatch tries contact, then document, then photo, then text, and the first match handles the update.
 
+To read the file a document or photo carries, inject `FileDownloader` and call
+`download(fileId, maxBytes)`. It returns the bytes in memory, or fails with `FileTooLargeException` over
+the cap, whether or not Telegram reports the size. Telegram answers `getFile` only after copying the file
+to its Bot API server, which can take longer than the 10 seconds the message client waits, so downloads
+run on a client of their own that waits `sessionbot.telegram.file-timeout`.
+
 With no handler registered, or none matching, the update falls through to the default `/help`
 behavior.
 
@@ -299,6 +305,7 @@ under the permissions of whoever opened it.
 | `sessionbot.telegram.chat-idle-ttl` | `30m` | Idle period after which an inactive chat's update stream is released. |
 | `sessionbot.telegram.max-concurrent-chats` | `256` | Maximum number of chats processed concurrently (per-chat fan-out). |
 | `sessionbot.telegram.permit-commands` | *(empty)* | Commands that run without consulting the `AuthInterceptor` (see Authentication above). |
+| `sessionbot.telegram.file-timeout` | `30s` | How long a `FileDownloader` waits for Telegram (see Bare updates above). |
 
 Setting `token` and `bot-username` is what activates the auto-configuration at all; every other
 property is inert until then.
@@ -309,7 +316,7 @@ Nearly every bean `SessionBotAutoConfiguration` declares is `@ConditionalOnMissi
 consuming app overrides any of them by simply declaring its own bean of the same type — or, for the
 name-qualified ones below, the same bean name:
 
-- By type: `TelegramClient`, `TelegramBotsLongPollingApplication`, `MessageExecutor`,
+- By type: `TelegramClient`, `TelegramBotsLongPollingApplication`, `MessageExecutor`, `FileDownloader`,
   `OutboundMessageBus`, `GuardDeniedHandler`, `CommandMenuService`, `InboundUpdateBus`,
   `AuthInterceptor`, `LocaleProvider`, `BotLabels`. (`HelpCommand` and `CommandsFactory` are
   internal and no longer overridable beans; to change the reply to unknown or refused commands

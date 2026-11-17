@@ -26,6 +26,7 @@ class SessionBotPropertiesTest {
             "\"sessionbot.telegram.language\"",
             "\"sessionbot.telegram.chat-idle-ttl\"",
             "\"sessionbot.telegram.max-concurrent-chats\"",
-            "\"sessionbot.telegram.permit-commands\"");
+            "\"sessionbot.telegram.permit-commands\"",
+            "\"sessionbot.telegram.file-timeout\"");
     }
 }

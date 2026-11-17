@@ -27,4 +27,9 @@ public class SessionBotProperties {
      * as {@code start} that must run before the caller can be recognized. Empty by default.
      */
     private List<String> permitCommands = List.of();
+    /**
+     * How long a {@code FileDownloader} waits for Telegram, which answers {@code getFile} only once it has copied
+     * the file; the client that sends messages keeps OkHttp's 10 seconds.
+     */
+    private Duration fileTimeout = Duration.ofSeconds(30);
 }
