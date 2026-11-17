@@ -177,7 +177,8 @@ To read the file a document or photo carries, inject `FileDownloader` and call
 `download(fileId, maxBytes)`. It returns the bytes in memory, or fails with `FileTooLargeException` over
 the cap, whether or not Telegram reports the size. Telegram answers `getFile` only after copying the file
 to its Bot API server, which can take longer than the 10 seconds the message client waits, so downloads
-run on a client of their own that waits `sessionbot.telegram.file-timeout`.
+run on a client of their own that waits `sessionbot.telegram.file-timeout` per attempt. A `getFile`
+left unanswered is tried once more on a new connection.
 
 With no handler registered, or none matching, the update falls through to the default `/help`
 behavior.
@@ -305,7 +306,7 @@ under the permissions of whoever opened it.
 | `sessionbot.telegram.chat-idle-ttl` | `30m` | Idle period after which an inactive chat's update stream is released. |
 | `sessionbot.telegram.max-concurrent-chats` | `256` | Maximum number of chats processed concurrently (per-chat fan-out). |
 | `sessionbot.telegram.permit-commands` | *(empty)* | Commands that run without consulting the `AuthInterceptor` (see Authentication above). |
-| `sessionbot.telegram.file-timeout` | `30s` | How long a `FileDownloader` waits for Telegram (see Bare updates above). |
+| `sessionbot.telegram.file-timeout` | `15s` | How long each `FileDownloader` attempt waits for Telegram (see Bare updates above). |
 
 Setting `token` and `bot-username` is what activates the auto-configuration at all; every other
 property is inert until then.
