@@ -36,6 +36,7 @@ import io.github.baevkir.sessionbot.i18n.LocaleProvider;
 import io.github.baevkir.sessionbot.menu.CommandMenuService;
 import io.github.baevkir.sessionbot.handler.PhotoHandler;
 import io.github.baevkir.sessionbot.handler.TextHandler;
+import okhttp3.OkHttpClient;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -86,8 +87,9 @@ public class SessionBotAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public FileDownloader fileDownloader(SessionBotProperties properties) {
-        return new TelegramFileDownloader(new OkHttpTelegramClient(
-                TelegramFileDownloader.httpClient(properties.getFileTimeout()), properties.getToken()));
+        OkHttpClient files = TelegramFileDownloader.httpClient(properties.getFileTimeout());
+        return new TelegramFileDownloader(new OkHttpTelegramClient(files, properties.getToken()),
+                files.connectionPool()::evictAll);
     }
 
     @Bean

@@ -6,15 +6,19 @@ import okhttp3.OkHttpClient;
 import org.junit.jupiter.api.Test;
 import org.telegram.telegrambots.meta.api.methods.GetFile;
 import org.telegram.telegrambots.meta.api.objects.File;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 import reactor.test.StepVerifier;
 
 import java.io.ByteArrayInputStream;
+import java.net.SocketTimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -63,10 +67,52 @@ class TelegramFileDownloaderTest {
     }
 
     @Test
-    void theFileClientWaitsLongerThanTheMessageClientsTenSeconds() {
+    void theFileClientWaitsFifteenSecondsPerAttempt() {
         OkHttpClient files = TelegramFileDownloader.httpClient(new SessionBotProperties().getFileTimeout());
 
-        assertThat(files.readTimeoutMillis()).isEqualTo(30_000);
+        assertThat(files.readTimeoutMillis()).isEqualTo(15_000);
+    }
+
+    @Test
+    void anUnansweredGetFileIsTriedOnceMoreOnANewConnection() throws Exception {
+        AtomicInteger drops = new AtomicInteger();
+        TelegramFileDownloader retrying = new TelegramFileDownloader(client, drops::incrementAndGet);
+        File file = file(3L);
+        when(client.execute(any(GetFile.class))).thenThrow(timedOut()).thenReturn(file);
+        when(client.downloadFileAsStream(file)).thenReturn(new ByteArrayInputStream(new byte[]{1, 2, 3}));
+
+        StepVerifier.create(retrying.download("file-1", MAX))
+                .assertNext(bytes -> assertThat(bytes).containsExactly(1, 2, 3))
+                .verifyComplete();
+
+        verify(client, times(2)).execute(any(GetFile.class));
+        assertThat(drops).hasValue(1);
+    }
+
+    @Test
+    void aSecondUnansweredGetFileFails() throws Exception {
+        when(client.execute(any(GetFile.class))).thenThrow(timedOut()).thenThrow(timedOut());
+
+        StepVerifier.create(downloader.download("file-1", MAX))
+                .expectError(TelegramApiException.class)
+                .verify();
+
+        verify(client, times(2)).execute(any(GetFile.class));
+    }
+
+    @Test
+    void aRefusedGetFileIsNotTriedAgain() throws Exception {
+        when(client.execute(any(GetFile.class))).thenThrow(new TelegramApiException("Bad Request: file not found"));
+
+        StepVerifier.create(downloader.download("file-1", MAX))
+                .expectError(TelegramApiException.class)
+                .verify();
+
+        verify(client, times(1)).execute(any(GetFile.class));
+    }
+
+    private static TelegramApiException timedOut() {
+        return new TelegramApiException("Unable to execute getFile method", new SocketTimeoutException("timeout"));
     }
 
     private static File file(Long size) {

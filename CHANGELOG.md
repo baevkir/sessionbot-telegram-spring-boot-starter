@@ -13,7 +13,9 @@
   fails with `FileTooLargeException` over the cap. Telegram answers `getFile` only after copying the
   file, which can take longer than the message client's 10-second read timeout. The default
   implementation therefore has an OkHttp client of its own, which waits `sessionbot.telegram.file-timeout`
-  (`30s`) and keeps an idle connection for one minute. The bean is `@ConditionalOnMissingBean`.
+  (`15s`) per attempt and keeps an idle connection for one minute. A `getFile` left unanswered is tried
+  once more on a new connection. A call that times out is logged, saying whether its connection was
+  new or reused. The bean is `@ConditionalOnMissingBean`.
 
 ## 0.1.0 — 2026-09-28
 

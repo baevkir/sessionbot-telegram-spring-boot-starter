@@ -28,8 +28,9 @@ public class SessionBotProperties {
      */
     private List<String> permitCommands = List.of();
     /**
-     * How long a {@code FileDownloader} waits for Telegram, which answers {@code getFile} only once it has copied
-     * the file; the client that sends messages keeps OkHttp's 10 seconds.
+     * How long each {@code FileDownloader} attempt waits for Telegram, which answers {@code getFile} only once it
+     * has copied the file; an unanswered {@code getFile} is tried once more on a new connection. The client that
+     * sends messages keeps OkHttp's 10 seconds.
      */
-    private Duration fileTimeout = Duration.ofSeconds(30);
+    private Duration fileTimeout = Duration.ofSeconds(15);
 }
