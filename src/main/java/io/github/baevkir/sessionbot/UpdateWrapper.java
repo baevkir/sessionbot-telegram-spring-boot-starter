@@ -12,6 +12,7 @@ import org.telegram.telegrambots.meta.api.objects.Contact;
 import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.message.MaybeInaccessibleMessage;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
+import org.telegram.telegrambots.meta.api.objects.photo.PhotoSize;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
 
@@ -97,6 +98,20 @@ public class UpdateWrapper {
 
     public Optional<Contact> getContact() {
         return Optional.ofNullable(update.getMessage()).map(Message::getContact);
+    }
+
+    public Optional<List<PhotoSize>> getPhotos() {
+        return Optional.ofNullable(update.getMessage())
+            .filter(Message::hasPhoto)
+            .map(Message::getPhoto);
+    }
+
+    public Optional<String> getCaption() {
+        return Optional.ofNullable(update.getMessage()).map(Message::getCaption);
+    }
+
+    public Optional<String> getMediaGroupId() {
+        return Optional.ofNullable(update.getMessage()).map(Message::getMediaGroupId);
     }
 
     public DynamicParameters getDynamicParams() {

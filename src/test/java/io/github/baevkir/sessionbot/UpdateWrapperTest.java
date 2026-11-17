@@ -152,6 +152,23 @@ class UpdateWrapperTest {
     }
 
     @Test
+    void exposesPhotosCaptionAndMediaGroup() {
+        var wrapper = UpdateWrapper.wrap(Fixtures.photoUpdate(1, 42L, 100, "борщ", "g1"));
+        assertThat(wrapper.getPhotos()).isPresent();
+        assertThat(wrapper.getPhotos().get()).hasSize(2);
+        assertThat(wrapper.getCaption()).contains("борщ");
+        assertThat(wrapper.getMediaGroupId()).contains("g1");
+    }
+
+    @Test
+    void photosAbsentOnPlainTextMessage() {
+        var wrapper = UpdateWrapper.wrap(Fixtures.messageUpdate(1, 42L, 100, "hello"));
+        assertThat(wrapper.getPhotos()).isEmpty();
+        assertThat(wrapper.getCaption()).isEmpty();
+        assertThat(wrapper.getMediaGroupId()).isEmpty();
+    }
+
+    @Test
     void documentAbsentOnPlainTextMessage() {
         var wrapper = UpdateWrapper.wrap(Fixtures.messageUpdate(1, 42L, 100, "hello"));
         assertThat(wrapper.getDocument()).isEmpty();

@@ -12,7 +12,9 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.chat.Chat;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
+import org.telegram.telegrambots.meta.api.objects.photo.PhotoSize;
 
+import java.util.List;
 import java.util.Locale;
 
 /** Builds Telegram DTOs and session objects from wire strings for tests. */
@@ -60,6 +62,26 @@ public final class Fixtures {
             .chat(Chat.builder().id(chatId).type("private").build())
             .from(user("tester"))
             .document(document)
+            .build();
+        var update = new Update();
+        update.setUpdateId(updateId);
+        update.setMessage(message);
+        return update;
+    }
+
+    /** A message-based update carrying a two-size photo, an optional caption and media group, and no text. */
+    public static Update photoUpdate(int updateId, long chatId, int messageId, String caption, String mediaGroupId) {
+        var message = Message.builder()
+            .messageId(messageId)
+            .chat(Chat.builder().id(chatId).type("private").build())
+            .from(user("tester"))
+            .photo(List.of(
+                PhotoSize.builder().fileId("small-" + updateId).fileUniqueId("usmall-" + updateId)
+                    .width(90).height(90).fileSize(1000).build(),
+                PhotoSize.builder().fileId("large-" + updateId).fileUniqueId("ularge-" + updateId)
+                    .width(1280).height(1280).fileSize(90000).build()))
+            .caption(caption)
+            .mediaGroupId(mediaGroupId)
             .build();
         var update = new Update();
         update.setUpdateId(updateId);

@@ -13,6 +13,7 @@ import io.github.baevkir.sessionbot.fixtures.Fixtures;
 import io.github.baevkir.sessionbot.fixtures.FixtureCommandConfig;
 import io.github.baevkir.sessionbot.fixtures.OrderCommand;
 import io.github.baevkir.sessionbot.CommandContext;
+import io.github.baevkir.sessionbot.handler.PhotoHandler;
 import io.github.baevkir.sessionbot.handler.TextHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +30,7 @@ import org.telegram.telegrambots.meta.api.methods.botapimethods.PartialBotApiMet
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Contact;
 import org.telegram.telegrambots.meta.api.objects.Document;
+import org.telegram.telegrambots.meta.api.objects.photo.PhotoSize;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.chat.Chat;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
@@ -100,17 +102,23 @@ class TelegramUpdateHandlerTest {
 
     private TelegramUpdateHandler handler(AuthInterceptor auth, List<DocumentHandler> documentHandlers,
                                           List<ContactHandler> contactHandlers, List<TextHandler> textHandlers) {
+        return handler(auth, documentHandlers, contactHandlers, textHandlers, List.of());
+    }
+
+    private TelegramUpdateHandler handler(AuthInterceptor auth, List<DocumentHandler> documentHandlers,
+                                          List<ContactHandler> contactHandlers, List<TextHandler> textHandlers,
+                                          List<PhotoHandler> photoHandlers) {
         return new TelegramUpdateHandler(
             commandsFactory, auth,
             new TelegramClientMessageExecutor(telegramClient, errorHandlerFactory),
-            documentHandlers, contactHandlers, textHandlers, List.of());
+            documentHandlers, contactHandlers, textHandlers, photoHandlers, List.of());
     }
 
     private TelegramUpdateHandler handlerFor(String botUsername) {
         return new TelegramUpdateHandler(
             commandsFactory, ALLOW,
             new TelegramClientMessageExecutor(telegramClient, errorHandlerFactory),
-            List.of(), List.of(), List.of(), List.of(),
+            List.of(), List.of(), List.of(), List.of(), List.of(),
             new HelpGuardDeniedHandler(commandsFactory.getHelpCommand()), botUsername);
     }
 
@@ -436,6 +444,115 @@ class TelegramUpdateHandlerTest {
             .assertNext(sent -> assertThat(((SendMessage) sent).getText()).isEqualTo("contact"))
             .verifyComplete();
         assertThat(documentHandlerInvoked).isFalse();
+    }
+
+    @DisplayName("bare photo routes to the matching photo handler")
+    @Test
+    void routesABarePhotoToAMatchingPhotoHandler() {
+        var received = new AtomicReference<String>();
+        PhotoHandler photoHandler = new PhotoHandler() {
+            @Override public boolean supports(List<PhotoSize> photos) { return !photos.isEmpty(); }
+            @Override public Publisher<PartialBotApiMethod<?>> handle(CommandContext context, List<PhotoSize> photos) {
+                received.set(context.getCommandUpdate().getCaption().orElse("") + "|"
+                    + context.getCommandUpdate().getMediaGroupId().orElse(""));
+                return Mono.just(SendMessage.builder().chatId(context.getChatId()).text("photos " + photos.size()).build());
+            }
+        };
+        var handler = handler(ALLOW, List.of(), List.of(), List.of(), List.of(photoHandler));
+        var updates = Flux.just(Fixtures.wrap(Fixtures.photoUpdate(1, Fixtures.CHAT_ID, 100, "борщ", "g1")));
+
+        StepVerifier.create(handler.handleUpdates(updates))
+            .assertNext(sent -> assertThat(((SendMessage) sent).getText()).isEqualTo("photos 2"))
+            .verifyComplete();
+        assertThat(received.get()).isEqualTo("борщ|g1");
+    }
+
+    @DisplayName("bare photo with no matching handler falls back to help")
+    @Test
+    void aPhotoWithoutAHandlerFallsBackToHelp() {
+        var handler = handler(ALLOW);
+        var updates = Flux.just(Fixtures.wrap(Fixtures.photoUpdate(1, Fixtures.CHAT_ID, 100, null, null)));
+
+        StepVerifier.create(handler.handleUpdates(updates))
+            .assertNext(sent -> assertThat(sent).isInstanceOf(SendMessage.class))
+            .verifyComplete();
+    }
+
+    @DisplayName("photo during an active command flow never reaches photo handlers")
+    @Test
+    void aPhotoIsNeverDispatchedMidCommand() {
+        var invoked = new AtomicBoolean(false);
+        PhotoHandler spyHandler = new PhotoHandler() {
+            @Override public boolean supports(List<PhotoSize> photos) { invoked.set(true); return true; }
+            @Override public Publisher<PartialBotApiMethod<?>> handle(CommandContext context, List<PhotoSize> photos) {
+                invoked.set(true); return Mono.empty();
+            }
+        };
+        var handler = handler(ALLOW, List.of(), List.of(), List.of(), List.of(spyHandler));
+        var updates = Flux.just(
+            Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "/order")),
+            Fixtures.wrap(Fixtures.photoUpdate(2, Fixtures.CHAT_ID, 101, null, null)));
+
+        StepVerifier.create(handler.handleUpdates(updates))
+            .thenConsumeWhile(message -> true)
+            .verifyComplete();
+        assertThat(invoked).isFalse();
+    }
+
+    @DisplayName("photo dispatch is auth-gated")
+    @Test
+    void photoHandlingIsAuthGated() {
+        PhotoHandler photoHandler = new PhotoHandler() {
+            @Override public boolean supports(List<PhotoSize> photos) { return true; }
+            @Override public Publisher<PartialBotApiMethod<?>> handle(CommandContext context, List<PhotoSize> photos) {
+                return Mono.just(SendMessage.builder().chatId(context.getChatId()).text("never").build());
+            }
+        };
+        var handler = handler(DENY, List.of(), List.of(), List.of(), List.of(photoHandler));
+        var updates = Flux.just(Fixtures.wrap(Fixtures.photoUpdate(1, Fixtures.CHAT_ID, 100, null, null)));
+
+        StepVerifier.create(handler.handleUpdates(updates))
+            .verifyError(BotAuthException.class);
+    }
+
+    @DisplayName("document routing is tried before photo routing")
+    @Test
+    void aDocumentIsRoutedBeforeAPhoto() {
+        var photoHandlerInvoked = new AtomicBoolean(false);
+        PhotoHandler photoHandler = new PhotoHandler() {
+            @Override public boolean supports(List<PhotoSize> photos) { return true; }
+            @Override public Publisher<PartialBotApiMethod<?>> handle(CommandContext context, List<PhotoSize> photos) {
+                photoHandlerInvoked.set(true);
+                return Mono.just(SendMessage.builder().chatId(context.getChatId()).text("photo").build());
+            }
+        };
+        DocumentHandler documentHandler = new DocumentHandler() {
+            @Override public boolean supports(Document document) { return true; }
+            @Override public Publisher<PartialBotApiMethod<?>> handle(CommandContext context, Document document) {
+                return Mono.just(SendMessage.builder().chatId(context.getChatId()).text("document").build());
+            }
+        };
+        var handler = handler(ALLOW, List.of(documentHandler), List.of(), List.of(), List.of(photoHandler));
+
+        var document = new Document();
+        document.setFileId("file-1");
+        document.setFileUniqueId("ufile-1");
+        document.setFileName("data.csv");
+        var message = Message.builder()
+            .messageId(100)
+            .chat(Chat.builder().id(Fixtures.CHAT_ID).type("private").build())
+            .from(Fixtures.user("tester"))
+            .document(document)
+            .photo(List.of(PhotoSize.builder().fileId("p").fileUniqueId("up").width(1).height(1).build()))
+            .build();
+        var update = new Update();
+        update.setUpdateId(1);
+        update.setMessage(message);
+
+        StepVerifier.create(handler.handleUpdates(Flux.just(Fixtures.wrap(update))))
+            .assertNext(sent -> assertThat(((SendMessage) sent).getText()).isEqualTo("document"))
+            .verifyComplete();
+        assertThat(photoHandlerInvoked).isFalse();
     }
 
     @DisplayName("bare text routes to the text handler verbatim, & and # included")

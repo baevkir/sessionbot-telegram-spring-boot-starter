@@ -10,6 +10,7 @@ import io.github.baevkir.sessionbot.guard.GuardContext;
 import io.github.baevkir.sessionbot.guard.GuardDeniedHandler;
 import io.github.baevkir.sessionbot.CommandContext;
 import io.github.baevkir.sessionbot.UpdateWrapper;
+import io.github.baevkir.sessionbot.handler.PhotoHandler;
 import io.github.baevkir.sessionbot.handler.TextHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
@@ -42,6 +43,7 @@ public class TelegramUpdateHandler {
     private final List<DocumentHandler> documentHandlers;
     private final List<ContactHandler> contactHandlers;
     private final List<TextHandler> textHandlers;
+    private final List<PhotoHandler> photoHandlers;
     private final List<String> permitCommands;
     private final GuardDeniedHandler guardDeniedHandler;
     private final String botUsername;
@@ -53,10 +55,11 @@ public class TelegramUpdateHandler {
         List<DocumentHandler> documentHandlers,
         List<ContactHandler> contactHandlers,
         List<TextHandler> textHandlers,
+        List<PhotoHandler> photoHandlers,
         List<String> permitCommands
     ) {
         this(commandsFactory, authInterceptor, messageExecutor, documentHandlers, contactHandlers, textHandlers,
-            permitCommands, new HelpGuardDeniedHandler(commandsFactory.getHelpCommand()), null);
+            photoHandlers, permitCommands, new HelpGuardDeniedHandler(commandsFactory.getHelpCommand()), null);
     }
 
     public TelegramUpdateHandler(
@@ -66,11 +69,12 @@ public class TelegramUpdateHandler {
         List<DocumentHandler> documentHandlers,
         List<ContactHandler> contactHandlers,
         List<TextHandler> textHandlers,
+        List<PhotoHandler> photoHandlers,
         List<String> permitCommands,
         GuardDeniedHandler guardDeniedHandler
     ) {
         this(commandsFactory, authInterceptor, messageExecutor, documentHandlers, contactHandlers, textHandlers,
-            permitCommands, guardDeniedHandler, null);
+            photoHandlers, permitCommands, guardDeniedHandler, null);
     }
 
     public TelegramUpdateHandler(
@@ -80,6 +84,7 @@ public class TelegramUpdateHandler {
         List<DocumentHandler> documentHandlers,
         List<ContactHandler> contactHandlers,
         List<TextHandler> textHandlers,
+        List<PhotoHandler> photoHandlers,
         List<String> permitCommands,
         GuardDeniedHandler guardDeniedHandler,
         String botUsername
@@ -90,6 +95,7 @@ public class TelegramUpdateHandler {
         this.documentHandlers = documentHandlers;
         this.contactHandlers = contactHandlers;
         this.textHandlers = textHandlers;
+        this.photoHandlers = photoHandlers;
         this.permitCommands = permitCommands == null ? List.of() : List.copyOf(permitCommands);
         this.guardDeniedHandler = Objects.requireNonNull(guardDeniedHandler, "guardDeniedHandler");
         this.botUsername = botUsername == null || !botUsername.startsWith("@") ? botUsername : botUsername.substring(1);
@@ -187,6 +193,14 @@ public class TelegramUpdateHandler {
                     bareContext -> handler.handle(bareContext, document))));
         if (documentDispatch.isPresent()) {
             return documentDispatch;
+        }
+        var photoDispatch = update.getPhotos()
+            .flatMap(photos -> photoHandlers.stream()
+                .filter(handler -> handler.supports(photos))
+                .findFirst()
+                .map(handler -> dispatchBare(context, "photo", bareContext -> handler.handle(bareContext, photos))));
+        if (photoDispatch.isPresent()) {
+            return photoDispatch;
         }
         return messageText(update)
             .flatMap(text -> textHandlers.stream()
