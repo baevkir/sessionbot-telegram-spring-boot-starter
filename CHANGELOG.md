@@ -9,6 +9,11 @@
   contact, document, photo, then text. `UpdateWrapper` gains `getPhotos()`, `getCaption()` and
   `getMediaGroupId()`. `TelegramUpdateHandler`'s constructors take a `List<PhotoHandler>` after the
   text handlers; a photo with no matching handler still falls back to `/help`.
+- **`FileDownloader`.** `download(fileId, maxBytes)` reads a document's or photo's file into memory and
+  fails with `FileTooLargeException` over the cap. Telegram answers `getFile` only after copying the
+  file, which can take longer than the message client's 10-second read timeout. The default
+  implementation therefore has an OkHttp client of its own, which waits `sessionbot.telegram.file-timeout`
+  (`30s`) and keeps an idle connection for one minute. The bean is `@ConditionalOnMissingBean`.
 
 ## 0.1.0 — 2026-09-28
 

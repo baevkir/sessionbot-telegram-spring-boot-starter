@@ -2,6 +2,7 @@ package io.github.baevkir.sessionbot.autoconfigure;
 
 import io.github.baevkir.sessionbot.internal.CommandsSessionBot;
 import io.github.baevkir.sessionbot.AuthInterceptor;
+import io.github.baevkir.sessionbot.FileDownloader;
 import io.github.baevkir.sessionbot.internal.CommandsFactory;
 import io.github.baevkir.sessionbot.internal.HelpCommand;
 import io.github.baevkir.sessionbot.render.ParameterRenderer;
@@ -55,6 +56,7 @@ class SessionBotAutoConfigurationTest {
             assertThat(context).hasSingleBean(ErrorHandlerFactory.class);
             assertThat(context).hasSingleBean(BotCommandErrorHandler.class);
             assertThat(context).hasSingleBean(BotAuthErrorHandler.class);
+            assertThat(context).hasSingleBean(FileDownloader.class);
             assertThat(context).hasBean("defaultParameterRenderer");
             assertThat(context).hasBean("textParameterRenderer");
             assertThat(context).hasBean("booleanParameterRenderer");
