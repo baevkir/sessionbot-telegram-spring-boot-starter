@@ -17,7 +17,15 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.telegram.telegrambots.longpolling.TelegramBotsLongPollingApplication;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+import io.github.baevkir.sessionbot.fixtures.Fixtures;
+import io.github.baevkir.sessionbot.handler.Reply;
+import io.github.baevkir.sessionbot.handler.ReplyHandler;
+import io.github.baevkir.sessionbot.internal.TelegramUpdateHandler;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -100,5 +108,23 @@ class SessionBotAutoConfigurationTest {
     @Test
     void registersACommandMenuService() {
         activeRunner.run(context -> assertThat(context).hasSingleBean(CommandMenuService.class));
+    }
+
+    @Test
+    void aReplyHandlerBeanIsTheOneTheDispatcherAsks() {
+        AtomicReference<String> claimed = new AtomicReference<>();
+        ReplyHandler handler = (context, text) -> {
+            claimed.set(text);
+            return Mono.just(Reply.silent());
+        };
+        activeRunner.withBean(ReplyHandler.class, () -> handler).run(context -> {
+            TelegramUpdateHandler dispatcher = context.getBean(TelegramUpdateHandler.class);
+
+            StepVerifier.create(dispatcher.handleUpdates(Flux.just(
+                    Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "відповідь")))))
+                .verifyComplete();
+
+            assertThat(claimed.get()).isEqualTo("відповідь");
+        });
     }
 }

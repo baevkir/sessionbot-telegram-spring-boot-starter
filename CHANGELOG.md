@@ -16,6 +16,13 @@
   (`15s`) per attempt and keeps an idle connection for one minute. A `getFile` left unanswered is tried
   once more on a new connection. A call that times out is logged, saying whether its connection was
   new or reused. The bean is `@ConditionalOnMissingBean`.
+- **`ReplyHandler`.** A bean of this interface claims a bare text the bot was waiting for:
+  `claim(CommandContext, String)` returns a `Mono<Reply>`, empty to pass the text on, or a `Reply`
+  (`Reply.of(…)`, `Reply.silent()`) to take it. Bare updates are now routed contact, document, photo,
+  `ReplyHandler` beans in order, then text. `TelegramUpdateHandler` has a constructor that takes a
+  `List<ReplyHandler>` after the bot username. With at least one `ReplyHandler` bean, the
+  `AuthInterceptor` runs on every bare text before the first `claim`, so an unauthorized sender's text
+  ends in the auth refusal and not in `/help`; a bot with none behaves as before.
 
 ## 0.1.0 — 2026-09-28
 
