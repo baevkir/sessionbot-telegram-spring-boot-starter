@@ -40,6 +40,7 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
@@ -828,11 +829,11 @@ class TelegramUpdateHandlerTest {
         var asked = new CopyOnWriteArrayList<String>();
         ReplyHandler first = (context, text) -> {
             asked.add("first");
-            return Mono.empty();
+            return Mono.delay(Duration.ofMillis(30)).then(Mono.empty());
         };
         ReplyHandler second = (context, text) -> {
             asked.add("second");
-            return Mono.just(Reply.of(say(context, "second")));
+            return Mono.delay(Duration.ofMillis(30)).thenReturn(Reply.of(say(context, "second")));
         };
         ReplyHandler third = (context, text) -> {
             asked.add("third");
@@ -945,11 +946,17 @@ class TelegramUpdateHandlerTest {
     void aFailedClaimSurfacesAsACommandErrorAndDoesNotFallThrough() {
         var received = new AtomicReference<String>();
         ReplyHandler failing = (context, text) -> Mono.error(new IllegalStateException("boom"));
-        var handler = handlerWithReplies(ALLOW, List.of(echoText(received)), List.of(failing));
+        var laterAsked = new AtomicBoolean();
+        ReplyHandler later = (context, text) -> {
+            laterAsked.set(true);
+            return Mono.empty();
+        };
+        var handler = handlerWithReplies(ALLOW, List.of(echoText(received)), List.of(failing, later));
 
         StepVerifier.create(handler.handleUpdates(typed("борщ")))
             .verifyError(BotCommandException.class);
         assertThat(received.get()).isNull();
+        assertThat(laterAsked).isFalse();
     }
 
     @DisplayName("a claim that throws surfaces as a command error")
@@ -978,7 +985,7 @@ class TelegramUpdateHandlerTest {
     @Test
     void twoTextsAreClaimedInArrivalOrder() {
         ReplyHandler slow = (context, text) ->
-            Mono.delay(Duration.ofMillis(50)).thenReturn(Reply.of(say(context, text)));
+            Mono.delay(Duration.ofMillis("перший".equals(text) ? 100 : 10)).thenReturn(Reply.of(say(context, text)));
         var handler = handlerWithReplies(ALLOW, List.of(), List.of(slow));
 
         StepVerifier.create(handler.handleUpdates(typed("перший", "другий"))
@@ -986,5 +993,18 @@ class TelegramUpdateHandlerTest {
             .expectNext("перший")
             .expectNext("другий")
             .verifyComplete();
+    }
+
+    @DisplayName("the winning claim completes and is not cancelled")
+    @Test
+    void theWinningClaimCompletesAndIsNotCancelled() {
+        var seen = new AtomicReference<SignalType>();
+        ReplyHandler winner = (context, text) -> Mono.just(Reply.silent()).doFinally(seen::set);
+        ReplyHandler later = (context, text) -> Mono.just(Reply.of(say(context, "later")));
+        var handler = handlerWithReplies(ALLOW, List.of(), List.of(winner, later));
+
+        StepVerifier.create(handler.handleUpdates(typed("борщ")))
+            .verifyComplete();
+        assertThat(seen.get()).isEqualTo(SignalType.ON_COMPLETE);
     }
 }

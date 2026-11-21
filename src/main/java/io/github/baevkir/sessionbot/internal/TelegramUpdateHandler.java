@@ -11,6 +11,7 @@ import io.github.baevkir.sessionbot.guard.GuardDeniedHandler;
 import io.github.baevkir.sessionbot.CommandContext;
 import io.github.baevkir.sessionbot.UpdateWrapper;
 import io.github.baevkir.sessionbot.handler.PhotoHandler;
+import io.github.baevkir.sessionbot.handler.Reply;
 import io.github.baevkir.sessionbot.handler.ReplyHandler;
 import io.github.baevkir.sessionbot.handler.TextHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -234,16 +235,25 @@ public class TelegramUpdateHandler {
 
     /** Reply handlers get the text first; an unclaimed one goes on to the text handlers, then /help. */
     private Flux<PartialBotApiMethod<?>> dispatchReplies(ConversationState context, String text) {
-        Mono<Flux<PartialBotApiMethod<?>>> claimed = Flux.fromIterable(replyHandlers)
-            .concatMap(handler -> Mono.defer(() -> handler.claim(context, text)))
-            .next()
-            .map(reply -> Flux.fromIterable(reply.messages()));
         Mono<Flux<PartialBotApiMethod<?>>> unclaimed = Mono.fromSupplier(() -> textHandlers.stream()
             .filter(handler -> handler.supports(text))
             .findFirst()
             .map(handler -> Flux.<PartialBotApiMethod<?>>from(handler.handle(context, text)))
             .orElseGet(() -> Flux.from(commandsFactory.getHelpCommand().render(context))));
-        return dispatchBare(context, "text", bareContext -> claimed.switchIfEmpty(unclaimed).flatMapMany(flux -> flux));
+        return dispatchBare(context, "text",
+            bareContext -> claimFrom(0, bareContext, text)
+                .<Flux<PartialBotApiMethod<?>>>map(reply -> Flux.fromIterable(reply.messages()))
+                .switchIfEmpty(unclaimed)
+                .flatMapMany(flux -> flux));
+    }
+
+    /** Asks the reply handlers one at a time from {@code index}; the first claim ends the chain. */
+    private Mono<Reply> claimFrom(int index, CommandContext context, String text) {
+        if (index >= replyHandlers.size()) {
+            return Mono.empty();
+        }
+        return Mono.defer(() -> replyHandlers.get(index).claim(context, text))
+            .switchIfEmpty(Mono.defer(() -> claimFrom(index + 1, context, text)));
     }
 
     private Flux<PartialBotApiMethod<?>> dispatchBare(ConversationState context, String description,

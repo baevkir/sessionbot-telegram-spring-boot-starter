@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -38,5 +39,23 @@ class ReplyTest {
     void aNullMessageIsRefusedAtCreation() {
         assertThatNullPointerException().isThrownBy(() -> Reply.of((PartialBotApiMethod<?>) null));
         assertThatNullPointerException().isThrownBy(() -> Reply.of(Arrays.asList((PartialBotApiMethod<?>) null)));
+    }
+
+    @Test
+    void repliesWithEqualMessagesAreEqual() {
+        var message = SendMessage.builder().chatId("1").text("a").build();
+        assertThat(Reply.of(message)).isEqualTo(Reply.of(message));
+        assertThat(Reply.of(message)).hasSameHashCodeAs(Reply.of(message));
+    }
+
+    @Test
+    void noMessagesGivesTheSharedSilentReply() {
+        assertThat(Reply.of()).isSameAs(Reply.silent());
+        assertThat(Reply.of(List.of())).isSameAs(Reply.silent());
+    }
+
+    @Test
+    void toStringShowsTheMessageText() {
+        assertThat(Reply.of(SendMessage.builder().chatId("1").text("борщ").build()).toString()).contains("борщ");
     }
 }

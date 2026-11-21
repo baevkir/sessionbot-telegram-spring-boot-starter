@@ -6,7 +6,8 @@ import org.telegram.telegrambots.meta.api.methods.botapimethods.PartialBotApiMet
 
 /**
  * What a {@link ReplyHandler} answers once it claims a text: the messages to send, in order, or
- * none at all for a claim that needs no answer.
+ * none at all for a claim that needs no answer. An empty reply still takes the text: nothing is
+ * sent, and no later handler sees it.
  */
 public final class Reply {
 
@@ -19,11 +20,12 @@ public final class Reply {
     }
 
     public static Reply of(PartialBotApiMethod<?>... messages) {
-        return new Reply(List.copyOf(Arrays.asList(messages)));
+        return of(Arrays.asList(messages));
     }
 
     public static Reply of(List<? extends PartialBotApiMethod<?>> messages) {
-        return new Reply(List.copyOf(messages));
+        List<PartialBotApiMethod<?>> copy = List.copyOf(messages);
+        return copy.isEmpty() ? SILENT : new Reply(copy);
     }
 
     public static Reply silent() {
@@ -32,5 +34,20 @@ public final class Reply {
 
     public List<PartialBotApiMethod<?>> messages() {
         return messages;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        return this == other || other instanceof Reply reply && messages.equals(reply.messages);
+    }
+
+    @Override
+    public int hashCode() {
+        return messages.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "Reply" + messages;
     }
 }
