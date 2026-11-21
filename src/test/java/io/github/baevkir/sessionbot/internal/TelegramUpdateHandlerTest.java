@@ -5,6 +5,7 @@ import io.github.baevkir.sessionbot.UpdateWrapper;
 import io.github.baevkir.sessionbot.handler.ContactHandler;
 import io.github.baevkir.sessionbot.handler.DocumentHandler;
 import io.github.baevkir.sessionbot.error.BotAuthException;
+import io.github.baevkir.sessionbot.error.BotCommandException;
 import io.github.baevkir.sessionbot.error.BotAuthErrorHandler;
 import io.github.baevkir.sessionbot.error.BotCommandErrorHandler;
 import io.github.baevkir.sessionbot.error.ErrorHandler;
@@ -14,6 +15,8 @@ import io.github.baevkir.sessionbot.fixtures.FixtureCommandConfig;
 import io.github.baevkir.sessionbot.fixtures.OrderCommand;
 import io.github.baevkir.sessionbot.CommandContext;
 import io.github.baevkir.sessionbot.handler.PhotoHandler;
+import io.github.baevkir.sessionbot.handler.Reply;
+import io.github.baevkir.sessionbot.handler.ReplyHandler;
 import io.github.baevkir.sessionbot.handler.TextHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,18 +40,22 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
@@ -120,6 +127,27 @@ class TelegramUpdateHandlerTest {
             new TelegramClientMessageExecutor(telegramClient, errorHandlerFactory),
             List.of(), List.of(), List.of(), List.of(), List.of(),
             new HelpGuardDeniedHandler(commandsFactory.getHelpCommand()), botUsername);
+    }
+
+    private TelegramUpdateHandler handlerWithReplies(AuthInterceptor auth, List<TextHandler> textHandlers,
+                                                     List<ReplyHandler> replyHandlers) {
+        return new TelegramUpdateHandler(
+            commandsFactory, auth,
+            new TelegramClientMessageExecutor(telegramClient, errorHandlerFactory),
+            List.of(), List.of(), textHandlers, List.of(), List.of(),
+            new HelpGuardDeniedHandler(commandsFactory.getHelpCommand()), null, replyHandlers);
+    }
+
+    private static SendMessage say(CommandContext context, String text) {
+        return SendMessage.builder().chatId(context.getChatId()).text(text).build();
+    }
+
+    private static Flux<UpdateWrapper> typed(String... texts) {
+        var updates = new ArrayList<UpdateWrapper>();
+        for (int i = 0; i < texts.length; i++) {
+            updates.add(Fixtures.wrap(Fixtures.messageUpdate(i + 1, Fixtures.CHAT_ID, 100 + i, texts[i])));
+        }
+        return Flux.fromIterable(updates);
     }
 
     private static TextHandler echoText(AtomicReference<String> received) {
@@ -741,5 +769,242 @@ class TelegramUpdateHandlerTest {
             .expectNextMatches(text -> text.contains("product"))
             .expectNext("buy:book")
             .verifyComplete();
+    }
+
+    @DisplayName("a claimed text sends the reply verbatim and never reaches the text handlers")
+    @Test
+    void aClaimedTextSendsTheReplyAndSkipsTextHandlers() throws Exception {
+        var received = new AtomicReference<String>();
+        ReplyHandler claiming = (context, text) -> Mono.just(Reply.of(say(context, "claimed: " + text)));
+        var handler = handlerWithReplies(ALLOW, List.of(echoText(received)), List.of(claiming));
+
+        StepVerifier.create(handler.handleUpdates(typed("борщ & хліб #1")))
+            .assertNext(sent -> assertThat(((SendMessage) sent).getText()).isEqualTo("claimed: борщ & хліб #1"))
+            .verifyComplete();
+        assertThat(received.get()).isNull();
+        verify(telegramClient, Mockito.times(1)).execute(any(BotApiMethod.class));
+    }
+
+    @DisplayName("a silent reply sends nothing and skips the text handlers and /help")
+    @Test
+    void aSilentReplySendsNothingAndSkipsTextHandlersAndHelp() throws Exception {
+        var received = new AtomicReference<String>();
+        ReplyHandler silent = (context, text) -> Mono.just(Reply.silent());
+        var handler = handlerWithReplies(ALLOW, List.of(echoText(received)), List.of(silent));
+
+        StepVerifier.create(handler.handleUpdates(typed("борщ")))
+            .verifyComplete();
+        assertThat(received.get()).isNull();
+        verify(telegramClient, never()).execute(any(BotApiMethod.class));
+    }
+
+    @DisplayName("an unclaimed text goes on to the text handler")
+    @Test
+    void anUnclaimedTextGoesToTheTextHandler() {
+        var received = new AtomicReference<String>();
+        ReplyHandler declining = (context, text) -> Mono.empty();
+        var handler = handlerWithReplies(ALLOW, List.of(echoText(received)), List.of(declining));
+
+        StepVerifier.create(handler.handleUpdates(typed("молоко")))
+            .assertNext(sent -> assertThat(((SendMessage) sent).getText()).isEqualTo("got: молоко"))
+            .verifyComplete();
+        assertThat(received.get()).isEqualTo("молоко");
+    }
+
+    @DisplayName("an unclaimed text with no text handler falls back to /help, executed once")
+    @Test
+    void anUnclaimedTextWithNoTextHandlerFallsBackToHelp() throws Exception {
+        ReplyHandler declining = (context, text) -> Mono.empty();
+        var handler = handlerWithReplies(ALLOW, List.of(), List.of(declining));
+
+        StepVerifier.create(handler.handleUpdates(typed("молоко")))
+            .assertNext(sent -> assertThat(((SendMessage) sent).getText()).contains("Help"))
+            .verifyComplete();
+        verify(telegramClient, Mockito.times(1)).execute(any(BotApiMethod.class));
+    }
+
+    @DisplayName("reply handlers are asked in order and none after the winner")
+    @Test
+    void replyHandlersAreAskedInOrderAndNoneAfterTheWinner() {
+        var asked = new CopyOnWriteArrayList<String>();
+        ReplyHandler first = (context, text) -> {
+            asked.add("first");
+            return Mono.delay(Duration.ofMillis(30)).then(Mono.empty());
+        };
+        ReplyHandler second = (context, text) -> {
+            asked.add("second");
+            return Mono.delay(Duration.ofMillis(30)).thenReturn(Reply.of(say(context, "second")));
+        };
+        ReplyHandler third = (context, text) -> {
+            asked.add("third");
+            return Mono.just(Reply.of(say(context, "third")));
+        };
+        var handler = handlerWithReplies(ALLOW, List.of(), List.of(first, second, third));
+
+        StepVerifier.create(handler.handleUpdates(typed("молоко")))
+            .assertNext(sent -> assertThat(((SendMessage) sent).getText()).isEqualTo("second"))
+            .verifyComplete();
+        assertThat(asked).containsExactly("first", "second");
+    }
+
+    @DisplayName("a captioned photo never reaches a reply handler")
+    @Test
+    void aCaptionedPhotoNeverReachesAReplyHandler() {
+        var invoked = new AtomicBoolean();
+        ReplyHandler spy = (context, text) -> {
+            invoked.set(true);
+            return Mono.empty();
+        };
+        var handler = handlerWithReplies(ALLOW, List.of(), List.of(spy));
+
+        StepVerifier.create(handler.handleUpdates(Flux.just(
+                Fixtures.wrap(Fixtures.photoUpdate(1, Fixtures.CHAT_ID, 100, "борщ", null)))))
+            .expectNextCount(1)
+            .verifyComplete();
+        assertThat(invoked).isFalse();
+    }
+
+    @DisplayName("text typed during a command never reaches a reply handler")
+    @Test
+    void textTypedDuringACommandNeverReachesAReplyHandler() {
+        var invoked = new AtomicBoolean();
+        ReplyHandler spy = (context, text) -> {
+            invoked.set(true);
+            return Mono.empty();
+        };
+        var handler = handlerWithReplies(ALLOW, List.of(), List.of(spy));
+        var updates = Flux.just(
+            Fixtures.wrap(Fixtures.messageUpdate(1, Fixtures.CHAT_ID, 100, "/order?buy")),
+            Fixtures.wrap(Fixtures.messageUpdate(2, Fixtures.CHAT_ID, 101, "book")));
+
+        StepVerifier.create(handler.handleUpdates(updates)
+                .filter(message -> message instanceof SendMessage)
+                .map(message -> ((SendMessage) message).getText()))
+            .expectNextMatches(text -> text.contains("product"))
+            .expectNext("buy:book")
+            .verifyComplete();
+        assertThat(invoked).isFalse();
+    }
+
+    @DisplayName("a refused sender gets the auth error and no claim")
+    @Test
+    void aRefusedSenderGetsTheAuthErrorAndNoClaim() {
+        var invoked = new AtomicBoolean();
+        var received = new AtomicReference<String>();
+        ReplyHandler spy = (context, text) -> {
+            invoked.set(true);
+            return Mono.empty();
+        };
+        var handler = handlerWithReplies(DENY, List.of(echoText(received)), List.of(spy));
+
+        StepVerifier.create(handler.handleUpdates(typed("борщ")))
+            .verifyError(BotAuthException.class);
+        assertThat(invoked).isFalse();
+        assertThat(received.get()).isNull();
+    }
+
+    @DisplayName("the interceptor runs once when the text falls through to a text handler")
+    @Test
+    void theInterceptorRunsOnceWhenTheTextFallsThrough() {
+        var calls = new AtomicInteger();
+        AuthInterceptor counting = context -> {
+            calls.incrementAndGet();
+            return Mono.just(true);
+        };
+        ReplyHandler declining = (context, text) -> Mono.empty();
+        var handler = handlerWithReplies(counting, List.of(echoText(new AtomicReference<>())), List.of(declining));
+
+        StepVerifier.create(handler.handleUpdates(typed("молоко")))
+            .assertNext(sent -> assertThat(((SendMessage) sent).getText()).isEqualTo("got: молоко"))
+            .verifyComplete();
+        assertThat(calls.get()).isEqualTo(1);
+    }
+
+    @DisplayName("without reply handlers a refused sender's unsupported text still gets /help")
+    @Test
+    void withoutReplyHandlersARefusedSendersUnsupportedTextStillGetsHelp() {
+        TextHandler unsupported = new TextHandler() {
+            @Override
+            public boolean supports(String text) {
+                return false;
+            }
+
+            @Override
+            public Publisher<PartialBotApiMethod<?>> handle(CommandContext context, String text) {
+                return Flux.empty();
+            }
+        };
+        var handler = handlerWithReplies(DENY, List.of(unsupported), List.of());
+
+        StepVerifier.create(handler.handleUpdates(typed("борщ")))
+            .assertNext(sent -> assertThat(((SendMessage) sent).getText()).contains("Help"))
+            .verifyComplete();
+    }
+
+    @DisplayName("a failed claim surfaces as a command error and does not fall through")
+    @Test
+    void aFailedClaimSurfacesAsACommandErrorAndDoesNotFallThrough() {
+        var received = new AtomicReference<String>();
+        ReplyHandler failing = (context, text) -> Mono.error(new IllegalStateException("boom"));
+        var laterAsked = new AtomicBoolean();
+        ReplyHandler later = (context, text) -> {
+            laterAsked.set(true);
+            return Mono.empty();
+        };
+        var handler = handlerWithReplies(ALLOW, List.of(echoText(received)), List.of(failing, later));
+
+        StepVerifier.create(handler.handleUpdates(typed("борщ")))
+            .verifyError(BotCommandException.class);
+        assertThat(received.get()).isNull();
+        assertThat(laterAsked).isFalse();
+    }
+
+    @DisplayName("a claim that throws surfaces as a command error")
+    @Test
+    void aClaimThatThrowsSurfacesAsACommandError() {
+        ReplyHandler throwing = (context, text) -> {
+            throw new IllegalStateException("boom");
+        };
+        var handler = handlerWithReplies(ALLOW, List.of(), List.of(throwing));
+
+        StepVerifier.create(handler.handleUpdates(typed("борщ")))
+            .verifyError(BotCommandException.class);
+    }
+
+    @DisplayName("a claim that returns null surfaces as a command error")
+    @Test
+    void aClaimThatReturnsNullSurfacesAsACommandError() {
+        ReplyHandler nulling = (context, text) -> null;
+        var handler = handlerWithReplies(ALLOW, List.of(), List.of(nulling));
+
+        StepVerifier.create(handler.handleUpdates(typed("борщ")))
+            .verifyError(BotCommandException.class);
+    }
+
+    @DisplayName("two texts are claimed in arrival order")
+    @Test
+    void twoTextsAreClaimedInArrivalOrder() {
+        ReplyHandler slow = (context, text) ->
+            Mono.delay(Duration.ofMillis("перший".equals(text) ? 100 : 10)).thenReturn(Reply.of(say(context, text)));
+        var handler = handlerWithReplies(ALLOW, List.of(), List.of(slow));
+
+        StepVerifier.create(handler.handleUpdates(typed("перший", "другий"))
+                .map(message -> ((SendMessage) message).getText()))
+            .expectNext("перший")
+            .expectNext("другий")
+            .verifyComplete();
+    }
+
+    @DisplayName("the winning claim completes and is not cancelled")
+    @Test
+    void theWinningClaimCompletesAndIsNotCancelled() {
+        var seen = new AtomicReference<SignalType>();
+        ReplyHandler winner = (context, text) -> Mono.just(Reply.silent()).doFinally(seen::set);
+        ReplyHandler later = (context, text) -> Mono.just(Reply.of(say(context, "later")));
+        var handler = handlerWithReplies(ALLOW, List.of(), List.of(winner, later));
+
+        StepVerifier.create(handler.handleUpdates(typed("борщ")))
+            .verifyComplete();
+        assertThat(seen.get()).isEqualTo(SignalType.ON_COMPLETE);
     }
 }

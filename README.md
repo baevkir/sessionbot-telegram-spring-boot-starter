@@ -170,8 +170,14 @@ a bean of the matching handler interface:
   holds the sizes Telegram sent for that one photo; the caption and media group id are on
   `context.getCommandUpdate()` (`getCaption()`, `getMediaGroupId()`). An album arrives as one update
   per photo sharing a media group id.
+- `ReplyHandler` — claims a plain text the bot was waiting for, such as the answer to a question it
+  asked. The text is one sent outside any command flow (text typed while a command waits for an
+  answer goes to the command) and arrives verbatim. `claim(CommandContext, String)` returns a
+  `Mono<Reply>`: empty passes the text on, and `Reply.of(…)` or `Reply.silent()` takes it. What the
+  bot is waiting for is kept by the bot, not by the library.
 
-Dispatch tries contact, then document, then photo, then text, and the first match handles the update.
+Dispatch tries contact, then document, then photo, then the `ReplyHandler` beans in order, then
+text, and the first match handles the update.
 
 To read the file a document or photo carries, inject `FileDownloader` and call
 `download(fileId, maxBytes)`. It returns the bytes in memory, or fails with `FileTooLargeException` over
@@ -249,7 +255,10 @@ result from a guard is treated as a denial, the same as returning `false`.
 That ordering does not hold for the fallback `/help` that answers a non-command update (plain text,
 a sticker, a photo no `PhotoHandler` takes) with no active conversation and no matching handler: that path never runs the
 `AuthInterceptor`, so a guard filtering `/help`'s command list sees the raw Telegram sender, not the
-name the interceptor would otherwise have normalized it to.
+name the interceptor would otherwise have normalized it to. A bot with a `ReplyHandler` bean runs the
+`AuthInterceptor` on every bare text before the first `claim`, so there an unauthorized sender's text
+ends in the auth refusal and not in `/help`; in such a bot the interceptor has also run before
+`/help` answers an authorized sender's unclaimed text.
 
 When a guard denies, the configured `GuardDeniedHandler` answers instead of the command running. The
 default (`HelpGuardDeniedHandler`) answers as it would to an unknown command — but the conversation

@@ -11,6 +11,8 @@ import io.github.baevkir.sessionbot.guard.GuardDeniedHandler;
 import io.github.baevkir.sessionbot.CommandContext;
 import io.github.baevkir.sessionbot.UpdateWrapper;
 import io.github.baevkir.sessionbot.handler.PhotoHandler;
+import io.github.baevkir.sessionbot.handler.Reply;
+import io.github.baevkir.sessionbot.handler.ReplyHandler;
 import io.github.baevkir.sessionbot.handler.TextHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
@@ -47,6 +49,7 @@ public class TelegramUpdateHandler {
     private final List<String> permitCommands;
     private final GuardDeniedHandler guardDeniedHandler;
     private final String botUsername;
+    private final List<ReplyHandler> replyHandlers;
 
     public TelegramUpdateHandler(
         CommandsFactory commandsFactory,
@@ -89,6 +92,23 @@ public class TelegramUpdateHandler {
         GuardDeniedHandler guardDeniedHandler,
         String botUsername
     ) {
+        this(commandsFactory, authInterceptor, messageExecutor, documentHandlers, contactHandlers, textHandlers,
+            photoHandlers, permitCommands, guardDeniedHandler, botUsername, List.of());
+    }
+
+    public TelegramUpdateHandler(
+        CommandsFactory commandsFactory,
+        AuthInterceptor authInterceptor,
+        MessageExecutor messageExecutor,
+        List<DocumentHandler> documentHandlers,
+        List<ContactHandler> contactHandlers,
+        List<TextHandler> textHandlers,
+        List<PhotoHandler> photoHandlers,
+        List<String> permitCommands,
+        GuardDeniedHandler guardDeniedHandler,
+        String botUsername,
+        List<ReplyHandler> replyHandlers
+    ) {
         this.commandsFactory = commandsFactory;
         this.authInterceptor = authInterceptor;
         this.messageExecutor = messageExecutor;
@@ -99,6 +119,7 @@ public class TelegramUpdateHandler {
         this.permitCommands = permitCommands == null ? List.of() : List.copyOf(permitCommands);
         this.guardDeniedHandler = Objects.requireNonNull(guardDeniedHandler, "guardDeniedHandler");
         this.botUsername = botUsername == null || !botUsername.startsWith("@") ? botUsername : botUsername.substring(1);
+        this.replyHandlers = replyHandlers == null ? List.of() : List.copyOf(replyHandlers);
     }
 
     public Flux<PartialBotApiMethod<?>> handleUpdates(Flux<UpdateWrapper> updates) {
@@ -202,11 +223,37 @@ public class TelegramUpdateHandler {
         if (photoDispatch.isPresent()) {
             return photoDispatch;
         }
+        if (!replyHandlers.isEmpty()) {
+            return messageText(update).map(text -> dispatchReplies(context, text));
+        }
         return messageText(update)
             .flatMap(text -> textHandlers.stream()
                 .filter(handler -> handler.supports(text))
                 .findFirst()
                 .map(handler -> dispatchBare(context, "text", bareContext -> handler.handle(bareContext, text))));
+    }
+
+    /** Reply handlers get the text first; an unclaimed one goes on to the text handlers, then /help. */
+    private Flux<PartialBotApiMethod<?>> dispatchReplies(ConversationState context, String text) {
+        Mono<Flux<PartialBotApiMethod<?>>> unclaimed = Mono.fromSupplier(() -> textHandlers.stream()
+            .filter(handler -> handler.supports(text))
+            .findFirst()
+            .map(handler -> Flux.<PartialBotApiMethod<?>>from(handler.handle(context, text)))
+            .orElseGet(() -> Flux.from(commandsFactory.getHelpCommand().render(context))));
+        return dispatchBare(context, "text",
+            bareContext -> claimFrom(0, bareContext, text)
+                .<Flux<PartialBotApiMethod<?>>>map(reply -> Flux.fromIterable(reply.messages()))
+                .switchIfEmpty(unclaimed)
+                .flatMapMany(flux -> flux));
+    }
+
+    /** Asks the reply handlers one at a time from {@code index}; the first claim ends the chain. */
+    private Mono<Reply> claimFrom(int index, CommandContext context, String text) {
+        if (index >= replyHandlers.size()) {
+            return Mono.empty();
+        }
+        return Mono.defer(() -> replyHandlers.get(index).claim(context, text))
+            .switchIfEmpty(Mono.defer(() -> claimFrom(index + 1, context, text)));
     }
 
     private Flux<PartialBotApiMethod<?>> dispatchBare(ConversationState context, String description,
